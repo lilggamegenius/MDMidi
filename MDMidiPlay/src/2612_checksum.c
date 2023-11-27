@@ -1,0 +1,52 @@
+// Ported to C by Valley Bell within 5 minutes for NeoLogiX
+// Note: This file should be included in the .gyb file loader (despite the .c extention)
+#include "stdtype.h"
+
+static UINT32 CalcGYBChecksum(UINT32 FileSize, const UINT8* FileData)
+{
+	UINT32 CurPos;
+	UINT8 ChkByt1;
+	UINT8 ChkByt2;
+	UINT8 ChkByt3;
+	UINT8 BytMask;
+	UINT16 InsCount;
+	UINT32 TempLng;
+	UINT32 QSum;
+	UINT8 ChkArr[0x04];
+	
+	// nineko really made a crazy checksum formula here
+	ChkByt2 = 0;
+	TempLng = FileSize;
+	while(TempLng)
+	{
+		ChkByt2 += (TempLng % 10);
+		TempLng /= 10;
+	}
+	ChkByt2 *= 3;
+	
+	ChkByt3 = 0;
+	QSum = 0;
+	BytMask = 1 << (FileSize & 0x07);
+	for (CurPos = 0x00; CurPos < FileSize; CurPos ++)
+	{
+		if ((FileData[CurPos] & BytMask) == BytMask)
+			ChkByt3 ++;
+		QSum += FileData[CurPos];
+	}
+	InsCount = FileData[0x03] + FileData[0x04];	// Melody + Drum Instruments
+	ChkByt1 = (FileSize + QSum) % (InsCount + 1);
+	QSum %= 999;
+	
+	ChkArr[0x00] = ChkByt2 + (QSum % 37);
+	ChkArr[0x01] = ChkByt1;
+	ChkArr[0x02] = ChkByt3;
+	// This formula is ... just ... crazy
+	// [ (q*x1*x2*x3) + (q*x1*x2) + (q*x2*x3) + (q*x1*x3) + x1+x2+x3+84 ] % 199
+	ChkArr[0x03] = ((QSum * (ChkByt1 + 1) * (ChkByt2 + 2) * (ChkByt3 + 3)) +
+					(QSum * (ChkByt1 + 1) * (ChkByt2 + 2)) +
+					(QSum * (ChkByt2 + 2) * (ChkByt3 + 3)) +
+					(QSum * (ChkByt1 + 1) * (ChkByt3 + 3)) +
+					ChkByt1 + ChkByt2 + ChkByt3 + 84) % 199;
+	
+	return *((UINT32*)ChkArr);
+}

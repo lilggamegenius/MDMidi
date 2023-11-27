@@ -1,0 +1,32 @@
+Settings are saved to HKEY_CURRENT_USER\Software\MD MIDI Driver.
+If the MIDI driver can't find a key in HKEY_CURRENT_USER, it will look in HKEY_LOCAL_MACHINE.
+
+These settings are available:
+
+Name		| Type		| Description/Notes
+----------------+---------------+---------------
+Volume		| REG_DWORD	| 10000 = 100%
+BufNum		| REG_DWORD	| Number of Buffers (WinMM/DSound)
+XBufNum		| REG_DWORD	| Number of Buffers (XAudio2)
+BufSmpls	| REG_DWORD	| Samples per Buffer
+		|		|   > 0 - BufSmpls (can be 10..1024)
+		|		|   = 0 - auto (SampleRate / 250)
+		|		|   < 0 - (SampleRate / -BufSmpls)
+SampleRate	| REG_DWORD	| Output Sample Rate
+SoundAPIDisable	| REG_DWORD	| Bitmask to disable Sound APIs
+		|		|   0x01 - waveOut
+		|		|   0x02 - DirectSound
+		|		|   0x04 - XAudio2
+GYBPath		| REG_SZ	| Path of 2612edit .gyb Instrument File
+PSGPath		| REG_SZ	| Path of mid2smps .lst PSG-List File
+MappingPath	| REG_SZ	| Path of mid2smps .map Mapping File
+DACPath		| REG_SZ	| Path of DAC.ini File
+
+
+
+When installing the driver, a new key called "midi1"* with the DLL path as value is created in
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Drivers32 [Win32 or Win64 for x64 programs]
+or
+HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Drivers32 [Win64 for x32 programs]
+
+* The number may be higher, if you already installed another MIDI driver like the BASSMIDI Driver by kode54 and Mudlord.

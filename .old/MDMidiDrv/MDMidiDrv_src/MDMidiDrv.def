@@ -1,0 +1,4 @@
+LIBRARY      "MDMidiDrv.dll"
+EXPORTS
+	DriverProc PRIVATE
+	modMessage PRIVATE

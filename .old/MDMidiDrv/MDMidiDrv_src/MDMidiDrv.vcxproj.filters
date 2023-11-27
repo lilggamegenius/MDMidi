@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="MDMidiDrv.cpp" />
+    <ClCompile Include="dsound.cpp" />
+    <ClCompile Include="sound_out_dsound.cpp" />
+    <ClCompile Include="sound_out_xaudio2.cpp" />
+    <ClCompile Include="..\SoundEngine\chips\2612intf.c">
+      <Filter>SoundChips</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SoundEngine\chips\fm2612.c">
+      <Filter>SoundChips</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SoundEngine\chips\sn764intf.c">
+      <Filter>SoundChips</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SoundEngine\chips\sn76496.c">
+      <Filter>SoundChips</Filter>
+    </ClCompile>
+    <ClCompile Include="sound_out_winmm.cpp" />
+    <ClCompile Include="..\..\MDMidiPlay\2612_checksum.c">
+      <Filter>MIDIEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\MDMidiPlay\2612_reader.c">
+      <Filter>MIDIEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\MDMidiPlay\MainEngine.c">
+      <Filter>MIDIEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\MDMidiPlay\Loader.c">
+      <Filter>MIDIEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\MDMidiPlay\Sound.c">
+      <Filter>MIDIEngine</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ds_stream.h" />
+    <ClInclude Include="..\external_packages\audiodefs.h" />
+    <ClInclude Include="..\external_packages\comdecl.h" />
+    <ClInclude Include="..\external_packages\XAudio2.h" />
+    <ClInclude Include="..\external_packages\xma2defs.h" />
+    <ClInclude Include="..\external_packages\mmddk.h" />
+    <ClInclude Include="sound_out.h" />
+    <ClInclude Include="..\SoundEngine\Loader.h">
+      <Filter>MIDIEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SoundEngine\Sound.h">
+      <Filter>MIDIEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SoundEngine\stdbool.h">
+      <Filter>MIDIEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SoundEngine\stdtype.h">
+      <Filter>MIDIEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SoundEngine\Structs.h">
+      <Filter>MIDIEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SoundEngine\chips\2612intf.h">
+      <Filter>SoundChips</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SoundEngine\chips\fm.h">
+      <Filter>SoundChips</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SoundEngine\chips\mamedef.h">
+      <Filter>SoundChips</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SoundEngine\chips\sn764intf.h">
+      <Filter>SoundChips</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SoundEngine\chips\sn76496.h">
+      <Filter>SoundChips</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\MDMidiPlay\2612_reader.h">
+      <Filter>MIDIEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\MDMidiPlay\2612_structs.h">
+      <Filter>MIDIEngine</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MDMidiDrv.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="SoundChips">
+      <UniqueIdentifier>{ad06028c-9070-4ee1-b749-8e8ed250f354}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MIDIEngine">
+      <UniqueIdentifier>{249eaa6e-7d34-451d-a46e-708bb05a7b18}</UniqueIdentifier>
+      <Extensions>c;h</Extensions>
+    </Filter>
+  </ItemGroup>
+</Project>

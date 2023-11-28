@@ -187,24 +187,21 @@ void InitEngine(void)
 	SmplPerFrame = SampleRate / 60;
 	NoiseDrmSmplLimit = SampleRate * 5;
 	S2R_Features = false;
-	
-	return;
 }
 
 void StartEngine(void)
 {
 	UINT8 CurChn;
-	MIDI_CHN* TempMid;
 	FMPSG_CHN* TempChn;
-	
+
 	// Reset Chips
 	device_reset_ym2612(0x00);
 	device_reset_sn764xx(0x00);
-	
+
 	// Reset FM/PSG Channel Structures
 	LFOVal = 0x00;
 	//memset(&DACChn, 0x00, sizeof(FMPSG_CHN) * 0x01);
-	
+
 	for (CurChn = 0x00; CurChn < 0x06; CurChn ++)
 	{
 		TempChn = &FMChn[CurChn];
@@ -213,7 +210,7 @@ void StartEngine(void)
 		TempChn->Ins = 0xFFFF;
 		TempChn->CurIns = 0xFFFF;
 	}
-	
+
 	for (CurChn = 0x00; CurChn < 0x04; CurChn ++)
 	{
 		TempChn = &PSGChn[CurChn];
@@ -222,13 +219,13 @@ void StartEngine(void)
 		//TempChn->Ins = 0x00;
 		//TempChn->CurIns = 0x00;
 	}
-	
+
 	for (CurChn = 0x00; CurChn < 0x10; CurChn ++)
 	{
-		TempMid = &MidChn[CurChn];
+		MIDI_CHN* TempMid = &MidChn[CurChn];
 		memset(TempMid, 0x00, sizeof(MIDI_CHN));
-		
-		TempMid->IsDrum = (CurChn == 0x09);
+
+		TempMid->IsDrum = CurChn == 0x09;
 		TempMid->ChnVol[0x00] = 100;
 		TempMid->ChnVol[0x01] = 0x7F;
 		TempMid->ChnVolB = 0x00;
@@ -238,14 +235,14 @@ void StartEngine(void)
 		TempMid->RPNVal[0x01] = 0x7F;
 		TempMid->PbDepth = 0x02;
 		TempMid->SpCtrl[0x00] = 0x7F;
-		
+
 		ApplyCtrlToChannels(CurChn, 0x07);
 		ApplyCtrlToChannels(CurChn, 0x0A);
 	}
-	
+
 	LastMidCmd = 0x00;
 	GMMode = 0x00;
-	
+
 	/* //Print Note Value list
 	// FM Notes
 	for (CurChn = 0; CurChn < 96; CurChn ++)
@@ -261,19 +258,10 @@ void StartEngine(void)
 			printf("\n");
 		printf("0x%04X, ", GetPSGNote(CurChn + 48, 0));
 	}*/
-	
-	return;
 }
 
 static UINT16 GetOPNNote(UINT8 Note, UINT8 Channel)
 {
-	double FreqVal;
-	INT8 BlockVal;
-	UINT16 KeyVal;
-	INT32 CurPitch;
-	double CurNote;
-	MIDI_CHN* TempMid;
-	
 	// Note: The SMPS 68k frequency table starts with an unused H/B frequency.
 	//       That's because note values start with 81, but before reading
 	//       the table, only 80 is subtracted. (BUT 81 is subtracted on PSG channels)
@@ -282,26 +270,26 @@ static UINT16 GetOPNNote(UINT8 Note, UINT8 Channel)
 		return GetOPNNote(11, Channel);
 	else if (Note > 11 + 95)
 		return GetOPNNote(11 + 95, Channel);
-	
-	TempMid = MidChn + Channel;
+
+	const MIDI_CHN* TempMid = MidChn + Channel;
 	//CurPitch = MMstTuning + TempMid->TunePb + TempMid->Pitch + TempMid->ModPb;
-	CurPitch = TempMid->TunePb + TempMid->Pitch;
-	
-	CurNote = Note + CurPitch / 8192.0;
-	FreqVal = 440.0 * pow(2.0, (CurNote - 69) / 12.0);
-	
+	const INT32 CurPitch = TempMid->TunePb + TempMid->Pitch;
+
+	const double CurNote = Note + CurPitch / 8192.0;
+	const double FreqVal = 440.0 * pow(2.0, (CurNote - 69) / 12.0);
+
 	// the Octave change takes place at an H (B).
-	BlockVal = ((INT16)(CurNote + 1) / 12) - 1;
+	INT8 BlockVal = (INT16)(CurNote + 1) / 12 - 1;
 	if (BlockVal < 0x00)
 		BlockVal = 0x00;
 	else if (BlockVal > 0x07)
 		BlockVal = 0x07;
 	//KeyVal = (INT16)(FreqVal * (1 << (21 - BlockVal)) / CHIP_RATE + 0.5);
-	KeyVal = (UINT16)((144.0 * FreqVal / 7670454.0) * (1 << (21 - BlockVal)) + 0.5);
+	UINT16 KeyVal = (UINT16)((144.0 * FreqVal / 7670454.0) * (1 << (21 - BlockVal)) + 0.5);
 	if (KeyVal > 0x07FF)
 		KeyVal = 0x07FF;
-	
-	return (BlockVal << 11) | KeyVal;
+
+	return BlockVal << 11 | KeyVal;
 }
 
 static UINT16 GetPSGNote(UINT8 Note, UINT8 Channel)
@@ -311,14 +299,14 @@ static UINT16 GetPSGNote(UINT8 Note, UINT8 Channel)
 	INT32 CurPitch;
 	double CurNote;
 	MIDI_CHN* TempMid;
-	
+
 	// simulate SMPS PSG frequency table limit (starting with C)
 #if 1	// Sonic 1 Frequency Range
 	if (Note < 48)
 	{
 		if (! S2R_Features)	// S1 -> lower limit is 48
 			return GetPSGNote(48, Channel);
-		else if (Note < 44)	// S2R-> lower limit is 44
+		if (Note < 44)	// S2R-> lower limit is 44
 			return GetPSGNote(44, Channel);
 	}
 	else if (Note >= 48 + 69)
@@ -331,18 +319,18 @@ static UINT16 GetPSGNote(UINT8 Note, UINT8 Channel)
 	else if (Note >= 48 + 70)
 		return 0x0000;
 #endif
-	
+
 	TempMid = MidChn + Channel;
 	//CurPitch = MMstTuning + TempMid->TunePb + TempMid->Pitch + TempMid->ModPb;
 	CurPitch = TempMid->TunePb + TempMid->Pitch;
-	
+
 	CurNote = Note + CurPitch / 8192.0;
 	FreqVal = 440.0 * pow(2.0, (CurNote - 69) / 12.0);
-	
+
 	KeyVal = (UINT16)(3579545.0 / (32 * FreqVal) + 0.5);
 	if (KeyVal > 0x03FF)
 		KeyVal = 0x03FF;
-	
+
 	return KeyVal;
 }
 
@@ -350,59 +338,53 @@ static void Write_OPN(UINT8 Channel, UINT8 Register, UINT8 Value)
 {
 	UINT8 Port;
 	UINT8 Reg;
-	
+
 	if (Register < 0x30)
 	{
 		Port = 0x00;
 		Reg = Register;
 		if (Register == 0x28)
-			Value |= ((Channel / 3) << 2) | (Channel % 3);
+			Value |= Channel / 3 << 2 | Channel % 3;
 	}
 	else
 	{
 		Port = Channel / 3;
-		Reg = Register | (Channel % 3);
+		Reg = Register | Channel % 3;
 	}
-	
+
 	Port <<= 1;
 	ym2612_w(0x00, Port | 0x00, Reg);
 	ym2612_w(0x00, Port | 0x01, Value);
-	
-	return;
 }
 
 static void Write_PSG(UINT8 Channel, UINT8 Register, UINT16 Value)
 {
 	UINT8 Data;
-	
+
 	switch(Register)
 	{
 	case 0x00:	// Frequency
-		Data = 0x80 | (Channel << 5) | (Value & 0x00F);
+		Data = 0x80 | Channel << 5 | Value & 0x00F;
 		sn764xx_w(0x00, 0x00, Data);
 		Data = (Value & 0x3F0) >> 4;
 		break;
 	case 0x01:	// Volume
-		Data = 0x90 | (Channel << 5) | (Value & 0x00F);
+		Data = 0x90 | Channel << 5 | Value & 0x00F;
 		break;
 	case 0x0F:	// direct write
 		Data = Value & 0xFF;
 		break;
 	}
 	sn764xx_w(0x00, 0x00, Data);
-	
-	return;
 }
 
 static void DoNoteOn(UINT8 MIDIChn, UINT8 Channel, UINT8 Note, UINT8 NoteVol)
 {
-	UINT8 ChnMode;
-	MIDI_CHN* TempMid;
 	FMPSG_CHN* TempChn;
 	UINT8 NewVol;
-	
-	TempMid = &MidChn[MIDIChn];
-	ChnMode = Channel >> 7;
+
+	const MIDI_CHN* TempMid = &MidChn[MIDIChn];
+	const UINT8 ChnMode = Channel >> 7;
 	Channel &= 0x7F;
 	switch(ChnMode)
 	{
@@ -410,8 +392,8 @@ static void DoNoteOn(UINT8 MIDIChn, UINT8 Channel, UINT8 Note, UINT8 NoteVol)
 		TempChn = &FMChn[Channel];
 		TempChn->NoteHeight = Note - TempChn->InsDisplc;
 		TempChn->NoteVolume = NoteVol;
-		
-		if (! TempMid->PortamntOn && (TempChn->UseMode & 0x01))
+
+		if (! TempMid->PortamntOn && TempChn->UseMode & 0x01)
 		{
 			Write_OPN(Channel, 0x28, 0x00);	// Note Off
 			TempChn->UseMode &= ~0x01;
@@ -421,7 +403,7 @@ static void DoNoteOn(UINT8 MIDIChn, UINT8 Channel, UINT8 Note, UINT8 NoteVol)
 			Write_OPN(0x00, 0x2B, 0x00);
 			TempChn->UseMode &= ~0x80;
 		}
-		
+
 		if ((TempChn->UseMode & 0x30) == 0x10)
 			NewVol = GetFMVolume(GetMidiNoteVolume(TempChn->NoteVolume, 0x09),
 								MidChn[0x09].ChnVolB, TempChn->UseMode & 0x02);
@@ -430,21 +412,21 @@ static void DoNoteOn(UINT8 MIDIChn, UINT8 Channel, UINT8 Note, UINT8 NoteVol)
 								TempMid->ChnVolB, TempChn->UseMode & 0x02);
 		if (NewVol != TempChn->Volume)
 			SetFMVolume(Channel, NewVol);
-		
+
 		TempChn->FNum = GetOPNNote(TempChn->NoteHeight, MIDIChn);
 		TempChn->FNumFinal = TempChn->FNum;
 		Write_OPN(Channel, 0xA4, (TempChn->FNumFinal & 0xFF00) >> 8);
 		Write_OPN(Channel, 0xA0, (TempChn->FNumFinal & 0x00FF) >> 0);
-		
+
 		if (! TempMid->PortamntOn || ! (TempChn->UseMode & 0x01))
 		{
 			Write_OPN(Channel, 0x28, 0xF0);	// Note On
 			TempChn->UseMode |= 0x01;
 			TempChn->TickCount = 0;
-			
+
 			SetModulationData(TempChn, /*! TempMid->PortamntOn*/ true);
 			TempChn->ModTicks = SmplPerFrame;
-			
+
 			SetNoteFill(TempChn);
 			TempChn->NoteFillTicks = SmplPerFrame;
 		}
@@ -456,10 +438,10 @@ static void DoNoteOn(UINT8 MIDIChn, UINT8 Channel, UINT8 Note, UINT8 NoteVol)
 			Channel --;
 			TempChn --;
 		}
-		
+
 		TempChn->NoteHeight = Note;
 		TempChn->NoteVolume = NoteVol;
-		
+
 		if ((TempChn->UseMode & 0x30) == 0x10)
 			NewVol = GetPSGVolume(GetMidiNoteVolume(TempChn->NoteVolume, 0x09),
 									MidChn[0x09].ChnVolB);
@@ -468,7 +450,7 @@ static void DoNoteOn(UINT8 MIDIChn, UINT8 Channel, UINT8 Note, UINT8 NoteVol)
 									TempMid->ChnVolB);
 		//if (NewVol != TempChn->Volume)
 		//	SetPSGVolume(Channel, NewVol);
-		
+
 		TempChn->FNum = GetPSGNote(TempChn->NoteHeight, MIDIChn);
 		TempChn->FNumFinal = TempChn->FNum;
 		if (Channel < 0x03)
@@ -479,14 +461,14 @@ static void DoNoteOn(UINT8 MIDIChn, UINT8 Channel, UINT8 Note, UINT8 NoteVol)
 		{
 			TempChn->UseMode |= 0x01;
 			TempChn->TickCount = 0;
-			
+
 			TempChn->EnvIdx = 0x00;
 			PSGAdvanceEnv(Channel, 0);
 			TempChn->EnvTicks = SmplPerFrame;
-			
+
 			SetModulationData(TempChn, /*! TempMid->PortamntOn*/ true);
 			TempChn->ModTicks = SmplPerFrame;
-			
+
 			SetNoteFill(TempChn);
 			TempChn->NoteFillTicks = SmplPerFrame;
 		}
@@ -494,15 +476,11 @@ static void DoNoteOn(UINT8 MIDIChn, UINT8 Channel, UINT8 Note, UINT8 NoteVol)
 		break;
 	}
 	Sound_WakeUp();
-	
-	return;
 }
 
 static void DoNoteOff(UINT8 Channel)
 {
-	UINT8 ChnMode;
-	
-	ChnMode = Channel >> 7;
+	const UINT8 ChnMode = Channel >> 7;
 	Channel &= 0x7F;
 	switch(ChnMode)
 	{
@@ -523,28 +501,22 @@ static void DoNoteOff(UINT8 Channel)
 		}
 		break;
 	}
-	
-	return;
 }
 
 static void PlayNote(UINT8 Command, UINT8 Value, UINT8 Velocity)
 {
-	UINT8 MIDIChn;
 	bool NoteOn;
 	UINT8 ChipChn;
-	MIDI_CHN* TempMid;
-	DRUM_SND_MAP* TempDrm;
 	FMPSG_CHN* TempChn;
-	UINT8 DrmIns;
 	UINT8 DrmNote;
-	
-	MIDIChn = Command & 0x0F;
-	TempMid = &MidChn[MIDIChn];
+
+	UINT8 MIDIChn = Command & 0x0F;
+	MIDI_CHN* TempMid = &MidChn[MIDIChn];
 	if (Command & 0x10)	// 0x90
 		NoteOn = Velocity ? true : false;
 	else				// 0x80
 		NoteOn = false;
-	
+
 	if (MIDIChn < 0x06)	// 00-05
 	{
 		// play FM note
@@ -582,12 +554,12 @@ static void PlayNote(UINT8 Command, UINT8 Value, UINT8 Velocity)
 	{
 		if (! NoteOn)
 			return;	// Note Offs are ignored
-		
-		NoteOn = (Velocity >= 0x10);
+
+		NoteOn = Velocity >= 0x10;
 		// play drum note
-		TempDrm = &DrumMapping.Drums[Value];
+		const DRUM_SND_MAP* TempDrm = &DrumMapping.Drums[Value];
 		ChipChn = TempDrm->Chn;
-		DrmIns = TempDrm->ID;
+		const UINT8 DrmIns = TempDrm->ID;
 		switch(TempDrm->Type)
 		{
 		case 0x00:	// None
@@ -597,14 +569,14 @@ static void PlayNote(UINT8 Command, UINT8 Value, UINT8 Velocity)
 				return;	// on the DAC channel, Note Offs are ignored
 			if (Velocity < 4)
 				return;	// mid2smps treats this as 'rest'
-			
+
 			TempChn = &FMChn[0x05];
 			if (! (TempChn->UseMode & 0x80))
 			{
 				Write_OPN(0x00, 0x2B, 0x80);
 				TempChn->UseMode |= 0x80;
 			}
-			
+
 			TempChn->NoteVolume = Velocity;
 			if (S2R_Features)
 			{
@@ -626,7 +598,7 @@ static void PlayNote(UINT8 Command, UINT8 Value, UINT8 Velocity)
 					DrmNote = GYBData.InsBank[GYBBANK_DRUM].InsData[DrmIns].Transp;
 				else
 					DrmNote = TempDrm->Note;
-				
+
 				if (FMChn[ChipChn].UseMode & 0x20)
 					MIDIChn = ChipChn;
 				FMChn[ChipChn].UseMode |= 0x10;
@@ -640,7 +612,7 @@ static void PlayNote(UINT8 Command, UINT8 Value, UINT8 Velocity)
 			break;
 		case 0x03:	// PSG
 			ChipChn = 0x03;
-			
+
 			if (NoteOn && Velocity >= 17)
 			{
 				TempChn = &PSGChn[ChipChn];
@@ -650,7 +622,7 @@ static void PlayNote(UINT8 Command, UINT8 Value, UINT8 Velocity)
 					Write_PSG(ChipChn, 0x0F, TempChn->NoiseVal);
 				}
 				TempChn->UseMode |= 0x80;
-				
+
 				if (TempChn->UseMode & 0x20)
 					MIDIChn = 0x0A + ChipChn;
 				SetPSGInstrument(ChipChn, DrmIns);
@@ -710,18 +682,14 @@ static void PlayNote(UINT8 Command, UINT8 Value, UINT8 Velocity)
 	{
 		return;	// not mapped
 	}
-	
-	return;
 }
 
 static void SetFMInstrument(UINT8 Channel, UINT8 InsBank, UINT16 Ins)
 {
-	FMPSG_CHN* TempChn;
-	const UINT8* InsData;
 	UINT8 CurPos;
 	UINT8 CurReg;
-	
-	TempChn = &FMChn[Channel];
+
+	FMPSG_CHN* TempChn = &FMChn[Channel];
 	TempChn->CurIns = Ins;
 	if (Ins == 0xFFFF)	// handle unmapped instruments
 	{
@@ -738,78 +706,65 @@ static void SetFMInstrument(UINT8 Channel, UINT8 InsBank, UINT16 Ins)
 		TempChn->AlgoMask = 0x00;
 		//TempChn->PanAFMS &= 0xC0;
 		Write_OPN(Channel, 0xB4, TempChn->PanAFMS);
-		
+
 		TempChn->GybIns = NULL;
 		TempChn->InsDisplc = 0x00;
 		return;
 	}
-	
+
 	TempChn->InsMode &= ~0x01;
 	TempChn->InsMode |= InsBank;
 	TempChn->GybIns = &GYBData.InsBank[InsBank & 0x01].InsData[Ins];
-	InsData = TempChn->GybIns->Reg;
-	
+	const UINT8* InsData = TempChn->GybIns->Reg;
+
 	CurReg = 0x30;
 	for (CurPos = 0x00; CurPos < 0x1C; CurPos ++, CurReg += 0x04)
 	{
 		if (CurPos >= 0x04 && CurPos < 0x08)
 			continue;	// skip volume registers
-		
+
 		Write_OPN(Channel, CurReg, InsData[CurPos]);
 	}
-	
+
 	TempChn->AlgoMask = AlgoTLMask[InsData[0x1C] & 0x07];
 	Write_OPN(Channel, 0xB0, InsData[0x1C]);
-	
+
 	//TempChn->PanAFMS &= 0xC0;
 	TempChn->PanAFMS |= InsData[0x1D] & 0x3F;
 	Write_OPN(Channel, 0xB4, TempChn->PanAFMS);
-	
+
 	SetFMVolume(Channel, TempChn->Volume);
-	
-	TempChn->InsDisplc = (InsBank & 0x01) ? 0x00 : TempChn->GybIns->Transp;
-	
-	return;
+
+	TempChn->InsDisplc = InsBank & 0x01 ? 0x00 : TempChn->GybIns->Transp;
 }
 
 static void SetFMVolume(UINT8 Channel, UINT8 Volume)
 {
-	FMPSG_CHN* TempChn;
-	const UINT8* TLData;
-	UINT8 CurOp;
-	UINT8 CurReg;
-	UINT8 TLMask;
-	UINT8 TLVal;
-	
-	TempChn = &FMChn[Channel];
+	FMPSG_CHN* TempChn = &FMChn[Channel];
 	if (TempChn->CurIns == 0xFFFF || TempChn->GybIns == NULL)
 		return;
-	
-	TLData = &TempChn->GybIns->Reg[0x04];
-	
+
+	const UINT8* TLData = &TempChn->GybIns->Reg[0x04];
+
 	TempChn->Volume = Volume;
-	TLMask = TempChn->AlgoMask;
-	CurReg = 0x40;
-	for (CurOp = 0x00; CurOp < 0x04; CurOp ++, CurReg += 0x04)
+	UINT8 TLMask = TempChn->AlgoMask;
+	UINT8 CurReg = 0x40;
+	for (UINT8 CurOp = 0x00; CurOp < 0x04; CurOp ++, CurReg += 0x04)
 	{
-		TLVal = TLData[CurOp];
+		UINT8 TLVal = TLData[CurOp];
 		if (TLMask & 0x01)
 			TLVal += Volume;
 		if (TLVal > 0x7F)
 			TLVal = 0x7F;
 		Write_OPN(Channel, CurReg, TLVal);
-		
+
 		TLMask >>= 1;
 	}
-	
-	return;
 }
 
 static void SetPSGInstrument(UINT8 Channel, UINT16 Env)
 {
-	FMPSG_CHN* TempChn;
-	
-	TempChn = &PSGChn[Channel];
+	FMPSG_CHN* TempChn = &PSGChn[Channel];
 	if (Env > PSGEnvData.EnvCount)
 		Env = 0xFFFF;	// avoid invalid envelopes
 	TempChn->CurIns = Env;
@@ -819,24 +774,17 @@ static void SetPSGInstrument(UINT8 Channel, UINT16 Env)
 		PSGAdvanceEnv(Channel, 0);
 		SetPSGVolume(Channel, TempChn->Volume);
 	}
-	
-	return;
 }
 
 static void SetPSGVolume(UINT8 Channel, UINT8 Volume)
 {
-	FMPSG_CHN* TempChn;
-	UINT8 EnvVol;
-	
-	TempChn = &PSGChn[Channel];
-	TempChn->Volume = (TempChn->UseMode & 0x01) ? Volume : 0x0F;
-	
-	EnvVol = TempChn->Volume + TempChn->EnvCache;
+	FMPSG_CHN* TempChn = &PSGChn[Channel];
+	TempChn->Volume = TempChn->UseMode & 0x01 ? Volume : 0x0F;
+
+	UINT8 EnvVol = TempChn->Volume + TempChn->EnvCache;
 	if (EnvVol > 0x0F)
 		EnvVol = 0x0F;
 	Write_PSG(Channel, 0x01, EnvVol);
-	
-	return;
 }
 
 static UINT8 GetFMVolume(float Volume, INT8 VolBoost, UINT8 PanVal)
@@ -845,13 +793,13 @@ static UINT8 GetFMVolume(float Volume, INT8 VolBoost, UINT8 PanVal)
 	const float PAN_DB = -3.0102999566398f;	//20 * Log10(Sin(PI / 2))
 	float DBVol;
 	float FMVol;
-	
+
 	if (Volume > 0.0f)
 	{
 		// MIDI -> DB:	40 * Log10(MidVol / MaxMidVol)  (formula from GM Dev. Guide)
 		// Pan -> DB:	DB += 40 * Log10(Sin(PI / 2 * ((PanVal - 1) / 0x7E)))
 		// DB -> OPN:	-DB * (4/3)  (same as OPL)
-		
+
 		// simplified calculations for hard-panned notes
 		if (! PanVal)
 			// Centered notes need to have a little lower volume than hard-panned ones
@@ -861,7 +809,7 @@ static UINT8 GetFMVolume(float Volume, INT8 VolBoost, UINT8 PanVal)
 			DBVol = (float)(40 * log10(Volume) - PAN_DB);
 		if (DBVol > 0.0f)
 			DBVol = 0.0f;
-		
+
 		FMVol = 0x08 + 4.0f * -DBVol / 3.0f - VolBoost;
 		if (FMVol < 0x00)
 			FMVol = 0x00;
@@ -877,17 +825,16 @@ static UINT8 GetFMVolume(float Volume, INT8 VolBoost, UINT8 PanVal)
 
 static UINT8 GetPSGVolume(float Volume, INT8 VolBoost)
 {
-	float DBVol;
 	float PSGVol;
-	
+
 	if (Volume > 0.0f)
 	{
 		// MIDI -> DB:	40 * Log10(MidVol / MaxMidVol)  (formula from GM Dev. Guide)
 		// DB -> PSG:	-DBVol / 2 (PSG has 2 db per step)
-		DBVol = (float)(40.0 * log10(Volume));
+		float DBVol = (float)(40.0 * log10(Volume));
 		if (DBVol > 0.0f)
 			DBVol = 0.0f;
-		
+
 		PSGVol = -DBVol / 2.0f - VolBoost;
 		if (PSGVol >= 17)
 			PSGVol = 0x0F;
@@ -905,58 +852,50 @@ static UINT8 GetPSGVolume(float Volume, INT8 VolBoost)
 
 static float GetMidiNoteVolume(UINT8 NoteVol, UINT8 Channel)
 {
-	MIDI_CHN* TempMid;
-	UINT32 AllVol;
-	
-	TempMid = &MidChn[Channel];
-	AllVol = NoteVol * TempMid->ChnVolCache;
-	
+	const MIDI_CHN* TempMid = &MidChn[Channel];
+	const UINT32 AllVol = NoteVol * TempMid->ChnVolCache;
+
 	return AllVol / 2048383.0f;	// 0x7F^3
 }
 
 static UINT16 GetMappedIns(const GYB_MAP_ILIST_V3* MapList, UINT8 BnkMSB, UINT8 BnkLSB)
 {
-	const GYB_MAP_ITEM_V3* TempItm;
-	UINT16 CurEnt;
-	UINT8 ConditVal;
-	
-	for (CurEnt = 0x00; CurEnt < MapList->EntryCount; CurEnt ++)
+	for (UINT16 CurEnt = 0x00; CurEnt < MapList->EntryCount; CurEnt ++)
 	{
-		TempItm = &MapList->Entry[CurEnt];
+		const GYB_MAP_ITEM_V3* TempItm = &MapList->Entry[CurEnt];
 		// Condition is true if:
 		//	Map->Bank == Midi->Bank
 		//	or one of both values is set to 0xFF ("all" for Map, "ignore" for Midi)
 		// For each part of the condition, the respective bits are cleared.
-		ConditVal = 0x03;
+		UINT8 ConditVal = 0x03;
 		if (BnkMSB == 0xFF || TempItm->BankMSB == 0xFF || TempItm->BankMSB == BnkMSB)
 			ConditVal &= ~0x01;
-		
+
 		if (BnkLSB == 0xFF || TempItm->BankLSB == 0xFF || TempItm->BankLSB == BnkLSB)
 			ConditVal &= ~0x02;
-		
+
 		if (! ConditVal)
 			return TempItm->FMIns;
 	}
-	
+
 	return 0xFFFF;
 }
 
 static UINT16 GetMappedMidiIns(MIDI_CHN* TempMid)
 {
-	UINT8 InsBank;
 	UINT16 FMInsVal;
-	
+
 	// At first, check the special instrument maps at Bank MSB 50h/51h.
 	if ((TempMid->BnkSel[0x00] & 0x7E) == 0x50)
 	{
 		// MSB 50h: unmapped melody bank
 		// MSB 51h: unmapped drum bank
-		InsBank = TempMid->BnkSel[0x00] & 0x01;
+		const UINT8 InsBank = TempMid->BnkSel[0x00] & 0x01;
 		// LSB 0: instruments 0000h-007Fh
 		// LSB 1: instruments 0080h-00FFh
 		// etc.
-		FMInsVal = (TempMid->BnkSel[0x01] << 7) | TempMid->Ins;
-		return (InsBank << 15) | FMInsVal;	// 8000 = drum bank
+		FMInsVal = TempMid->BnkSel[0x01] << 7 | TempMid->Ins;
+		return InsBank << 15 | FMInsVal;	// 8000 = drum bank
 	}
 	else if ((TempMid->BnkSel[0x00] & 0x7E) == 0x58)
 	{
@@ -977,7 +916,7 @@ static UINT16 GetMappedMidiIns(MIDI_CHN* TempMid)
 								TempMid->BnkSel[0x01], 0xFF);
 		}
 	}
-	
+
 	// Then check the mappings lists.
 	return GetMappedIns(&GYBData.InsMap[GYBBANK_MELODY].Ins[TempMid->Ins],
 						TempMid->BnkSel[0x00], TempMid->BnkSel[0x01]);
@@ -985,12 +924,11 @@ static UINT16 GetMappedMidiIns(MIDI_CHN* TempMid)
 
 static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 {
-	MIDI_CHN* TempMid;
 	UINT8 Channel;
 	FMPSG_CHN* TempChn;
 	UINT8 TempByt;
-	
-	TempMid = &MidChn[MIDIChn];
+
+	MIDI_CHN* TempMid = &MidChn[MIDIChn];
 	if (MIDIChn < 0x06)
 	{
 		Channel = MIDIChn;
@@ -1005,14 +943,14 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 			}
 			else
 			{
-				TempByt = (TempChn->Ins >> 15) & 0x01;
+				TempByt = TempChn->Ins >> 15 & 0x01;
 				TempChn->Ins &= 0x7FFF;
 				if (TempChn->Ins >= GYBData.InsBank[TempByt].InsCount)
 					TempChn->Ins = 0xFFFF;
 			}
-			
+
 			TempChn->InsMode &= ~0x10;	// clear bit 4, remove all others
-			TempChn->InsMode |= (TempByt << 4);
+			TempChn->InsMode |= TempByt << 4;
 			if (! (TempChn->UseMode & 0x10))	// if not in Drum mode, set instrument
 				SetFMInstrument(TempChn - FMChn, TempByt, TempChn->Ins);
 			break;
@@ -1037,7 +975,7 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 			}
 			break;
 		case 0x0A:	// Pan
-			switch((TempMid->Pan * 3) >> 7)
+			switch(TempMid->Pan * 3 >> 7)
 			{
 			case 0x00:	// Left
 				TempByt = 0x80;
@@ -1053,12 +991,12 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 				TempChn->UseMode &= ~0x02;
 				break;
 			}
-			TempByt |= (TempChn->PanAFMS & 0x3F);
+			TempByt |= TempChn->PanAFMS & 0x3F;
 			if (TempByt != TempChn->PanAFMS)
 			{
 				Write_OPN(Channel, 0xB4, TempByt);
 				TempChn->PanAFMS = TempByt;
-				
+
 				if (TempChn->UseMode & 0x01)	// Note playing?
 				{
 					if ((TempChn->UseMode & 0x30) == 0x10)
@@ -1099,7 +1037,7 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 						TempChn->ModData[0x03] ^= 0x40;
 					TempChn->ModData[0x01] &= ~0x60;
 				}
-				
+
 				if (! TempChn->ModData[0x01])
 					TempChn->ModData[0x01] = 0x01;
 				if (! TempChn->ModData[0x02])
@@ -1112,7 +1050,7 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 		case 0x21:	// Modulation LSB
 			TempByt  = (TempMid->ModDepth2 & 0x70) >> 4;	// Frequency Modulation (bits 0-2)
 			TempByt |= (TempMid->ModDepth2 & 0x60) >> 1;	// Amplitude Modulation (bits 4-5)
-			TempByt |= (TempChn->PanAFMS & 0xC0);
+			TempByt |= TempChn->PanAFMS & 0xC0;
 			if (TempByt != TempChn->PanAFMS)
 			{
 				Write_OPN(Channel, 0xB4, TempByt);
@@ -1152,7 +1090,7 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 			if (! TempMid->VibRate)
 				LFOVal = 0x00;
 			else
-				LFOVal = 0x08 | (TempMid->VibRate >> 4);	// 00..7F -> 08-0F
+				LFOVal = 0x08 | TempMid->VibRate >> 4;	// 00..7F -> 08-0F
 			Write_OPN(0x00, 0x22, LFOVal);
 			break;
 		case 0x79:	// Reset Channel
@@ -1180,7 +1118,7 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 										TempMid->ChnVolB * 2 + 8, TempChn->UseMode & 0x02);
 				SetDACVol(0x00, TempByt >> 1);
 			}
-			
+
 			TempChn = FMChn;
 			for (Channel = 0x00; Channel < 0x06; Channel ++, TempChn ++)
 			{
@@ -1207,7 +1145,7 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 			}
 			break;
 		case 0x0A:	// Pan
-			switch((TempMid->Pan * 3) >> 7)
+			switch(TempMid->Pan * 3 >> 7)
 			{
 			case 0x00:	// Left
 				TempByt = 0x80;
@@ -1223,7 +1161,7 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 				TempChn->UseMode &= ~0x02;
 				break;
 			}
-			TempByt |= (TempChn->PanAFMS & 0x3F);
+			TempByt |= TempChn->PanAFMS & 0x3F;
 			if (TempByt != TempChn->PanAFMS)
 			{
 				Write_OPN(Channel, 0xB4, TempByt);
@@ -1272,7 +1210,7 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 			break;
 		case 0xE0:	// Pitch Bend
 			if (S2R_Features)
-				OverrideDACRate(0x00, (TempMid->Pitch / 64) & 0x7F);
+				OverrideDACRate(0x00, TempMid->Pitch / 64 & 0x7F);
 			break;
 		}
 	}
@@ -1290,7 +1228,7 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 			if (! (TempChn->UseMode & 0x10))
 			{
 				SetPSGInstrument(Channel, TempChn->Ins);
-				if ((Channel & 0x02))	// Channel 2 and 3 share the envelope ...
+				if (Channel & 0x02)	// Channel 2 and 3 share the envelope ...
 				{
 					// ... if Ch4 is in "Use Ch2 Frequency" mode (or NoiseVal isn't set)
 					if (! (PSGChn[0x03].NoiseVal && (PSGChn[0x03].NoiseVal & 0x03) != 0x03))
@@ -1323,16 +1261,16 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 		case 0x03:	// SMPS: Set Noise Mode
 			if (Channel != 0x03)	// is this the Noise channel?
 				break;
-			
+
 			if (TempMid->SpCtrl[0x00] == 0x7F)
 				TempByt = 0x00;
 			else
-				TempByt = 0xE0 | (TempMid->SpCtrl[0x00] & 0x07);
-			
+				TempByt = 0xE0 | TempMid->SpCtrl[0x00] & 0x07;
+
 			if ((TempByt ^ TempChn->NoiseVal) & 0x80)
 				DoNoteOff(0x80 | Channel);	// noise mode change - turn tone off
 			TempChn->NoiseVal = TempByt;
-			
+
 			if (TempChn->NoiseVal)
 			{
 				Write_PSG(0x00, 0x0F, TempChn->NoiseVal);
@@ -1369,7 +1307,7 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 						TempChn->ModData[0x03] ^= 0x40;
 					TempChn->ModData[0x01] &= ~0x60;
 				}
-				
+
 				if (! TempChn->ModData[0x01])
 					TempChn->ModData[0x01] = 0x02;
 				if (! TempChn->ModData[0x02])
@@ -1414,8 +1352,6 @@ static void ApplyCtrlToChannels(UINT8 MIDIChn, UINT8 Ctrl)
 			break;
 		}
 	}
-	
-	return;
 }
 
 static void SetModulationData(FMPSG_CHN* ChnData, UINT8 ResetFreq)
@@ -1427,8 +1363,6 @@ static void SetModulationData(FMPSG_CHN* ChnData, UINT8 ResetFreq)
 	ChnData->ModRemSteps =			ChnData->ModData[0x03] / 2;
 	if (ResetFreq)
 		ChnData->ModFreqDiff =		0x0000;
-	
-	return;
 }
 
 static void SetNoteFill(FMPSG_CHN* ChnData)
@@ -1437,8 +1371,6 @@ static void SetNoteFill(FMPSG_CHN* ChnData)
 		ChnData->NoteFillRem = ChnData->NoteFill;
 	else
 		ChnData->NoteFillRem = 0x00;
-	
-	return;
 }
 
 // --- Engine Timer Update ---
@@ -1448,14 +1380,13 @@ void UpdateEngine(UINT32 SampleCount)
 	UINT8 CurChn;
 //	UINT32 CurFrm;
 	UINT8 FrmCount;
-	UINT8 OldVal;
-	
+
 	for (CurChn = 0x00; CurChn < 0x06; CurChn ++)
 	{
 		TempChn = &FMChn[CurChn];
 		if (! (TempChn->UseMode & 0x01))
 			continue;
-		
+
 		TempChn->TickCount += SampleCount;
 		if (TempChn->ModulationOn)
 		{
@@ -1469,17 +1400,17 @@ void UpdateEngine(UINT32 SampleCount)
 			if (FrmCount)
 				NoteFillUpdate(0x00 | CurChn, FrmCount);
 		}
-		
-		if ((TempChn->UseMode & 0x80) && TempChn->TickCount >= NoiseDrmSmplLimit)
+
+		if (TempChn->UseMode & 0x80 && TempChn->TickCount >= NoiseDrmSmplLimit)
 			DoNoteOff(0x00 | CurChn);
 	}
-	
+
 	for (CurChn = 0x00; CurChn < 0x04; CurChn ++)
 	{
 		TempChn = &PSGChn[CurChn];
 		if (! (TempChn->UseMode & 0x01))
 			continue;
-		
+
 		TempChn->TickCount += SampleCount;
 		if (TempChn->EnvIdx != 0xFF)
 		{
@@ -1487,13 +1418,13 @@ void UpdateEngine(UINT32 SampleCount)
 			FrmCount = CalcUpdateFrames(SampleCount, &TempChn->EnvTicks);
 			if (FrmCount)
 			{
-				OldVal = TempChn->EnvCache;
+				const UINT8 OldVal = TempChn->EnvCache;
 				PSGAdvanceEnv(CurChn, FrmCount);
 				if (OldVal != TempChn->EnvCache)
 					SetPSGVolume(CurChn, TempChn->Volume);
 			}
 		}
-		
+
 		if (TempChn->ModulationOn)
 		{
 			FrmCount = CalcUpdateFrames(SampleCount, &TempChn->ModTicks);
@@ -1506,13 +1437,11 @@ void UpdateEngine(UINT32 SampleCount)
 			if (FrmCount)
 				NoteFillUpdate(0x80 | CurChn, FrmCount);
 		}
-		
-		if ((TempChn->UseMode & 0x10) && TempChn->EnvIdx == 0xFF &&
+
+		if (TempChn->UseMode & 0x10 && TempChn->EnvIdx == 0xFF &&
 			TempChn->TickCount >= NoiseDrmSmplLimit)
 			DoNoteOff(0x80 | CurChn);
 	}
-	
-	return;
 }
 
 // Neither of those two functions seem to work even slightly correctly.
@@ -1521,7 +1450,7 @@ void UpdateEngine(UINT32 SampleCount)
 	// This was the old way. It works the same and is shorter,
 	// but it should be also be a lot slower because of more calculations.
 	UINT32 FrmCount;
-	
+
 	FrmCount = 0;
 	while(SampleCount >= *TickValue)
 	{
@@ -1530,7 +1459,7 @@ void UpdateEngine(UINT32 SampleCount)
 		FrmCount ++;
 	}
 	*TickValue -= SampleCount;
-	
+
 	return (UINT8)FrmCount;
 }
 
@@ -1538,7 +1467,7 @@ static UINT8 CalcUpdateFrames_Old2(UINT32 SampleCount, UINT32* TickValue)
 {
 	// Function rewritten to be faster.
 	UINT32 FrmCount;
-	
+
 	FrmCount = 0;
 	while(SampleCount >= SmplPerFrame)
 	{
@@ -1554,14 +1483,14 @@ static UINT8 CalcUpdateFrames_Old2(UINT32 SampleCount, UINT32* TickValue)
 		FrmCount ++;
 		*TickValue += SmplPerFrame - SampleCount;
 	}
-	
+
 	return (UINT8)FrmCount;
 }*/
 
 static UINT8 CalcUpdateFrames(UINT32 SampleCount, UINT32* TickValue)
 {
 	UINT32 FrmCount;
-	
+
 	*TickValue += SampleCount;
 #if 0
 	FrmCount = *TickValue / SmplPerFrame;
@@ -1575,17 +1504,13 @@ static UINT8 CalcUpdateFrames(UINT32 SampleCount, UINT32* TickValue)
 		FrmCount ++;
 	}
 #endif
-	
+
 	return (UINT8)FrmCount;
 }
 
 static void PSGAdvanceEnv(UINT8 Channel, UINT8 Steps)
 {
-	FMPSG_CHN* TempChn;
-	PSG_ENVELOPE* TempEnv;
-	UINT8 EnvVal;
-	
-	TempChn = &PSGChn[Channel];
+	FMPSG_CHN* TempChn = &PSGChn[Channel];
 	if (TempChn->EnvIdx == 0xFF)
 		return;
 	if (! TempChn->CurIns)
@@ -1600,7 +1525,7 @@ static void PSGAdvanceEnv(UINT8 Channel, UINT8 Steps)
 		TempChn->EnvCache = 0x0F;
 		return;
 	}
-	
+
 	if (! Steps)
 	{
 		// process this index again
@@ -1610,8 +1535,8 @@ static void PSGAdvanceEnv(UINT8 Channel, UINT8 Steps)
 	while(Steps)
 	{
 		TempChn->EnvIdx ++;
-		TempEnv = &PSGEnvData.Envelope[TempChn->CurIns - 1];
-		EnvVal = TempEnv->Data[TempChn->EnvIdx];
+		const PSG_ENVELOPE* TempEnv = &PSGEnvData.Envelope[TempChn->CurIns - 1];
+		const UINT8 EnvVal = TempEnv->Data[TempChn->EnvIdx];
 		if (EnvVal & 0x80)
 		{
 			switch(EnvVal)
@@ -1635,28 +1560,25 @@ static void PSGAdvanceEnv(UINT8 Channel, UINT8 Steps)
 			TempChn->EnvIdx = 0xFF;
 			return;
 		}
-		
+
 		Steps --;
 	}
-	
-	return;
 }
 
 static void ModulationUpdate(UINT8 Channel, UINT8 Steps)
 {
-	UINT8 ChnMode;
 	FMPSG_CHN* TempChn;
-	
-	ChnMode = Channel >> 7;
+
+	const UINT8 ChnMode = Channel >> 7;
 	Channel &= 0x7F;
 	if (! ChnMode)
 		TempChn = &FMChn[Channel];
 	else
 		TempChn = &PSGChn[Channel];
-	
+
 	if (! TempChn->ModulationOn)
 		return;
-	
+
 	// Wait for a certain amount of frames
 	if (TempChn->ModWait)
 	{
@@ -1671,7 +1593,7 @@ static void ModulationUpdate(UINT8 Channel, UINT8 Steps)
 			TempChn->ModWait = 0x00;
 		}
 	}
-	
+
 	while(Steps)
 	{
 		Steps --;
@@ -1679,7 +1601,7 @@ static void ModulationUpdate(UINT8 Channel, UINT8 Steps)
 		if (TempChn->ModStepWait)
 			continue;
 		TempChn->ModStepWait = TempChn->ModData[0x01];
-		
+
 		if (TempChn->ModRemSteps)
 		{
 			TempChn->ModFreqDiff += TempChn->ModFreqDelta;
@@ -1705,48 +1627,42 @@ static void ModulationUpdate(UINT8 Channel, UINT8 Steps)
 			TempChn->ModFreqDelta = -TempChn->ModFreqDelta;
 		}
 	}
-	
-	return;
 }
 
 static void NoteFillUpdate(UINT8 Channel, UINT8 Steps)
 {
-	UINT8 ChnMode;
 	FMPSG_CHN* TempChn;
-	
-	ChnMode = Channel >> 7;
+
+	const UINT8 ChnMode = Channel >> 7;
 	Channel &= 0x7F;
 	if (! ChnMode)
 		TempChn = &FMChn[Channel];
 	else
 		TempChn = &PSGChn[Channel];
-	
+
 	if (! TempChn->NoteFillRem)
 		return;
-	
+
 	// Wait for a certain amount of frames
 	if (Steps < TempChn->NoteFillRem)
 	{
 		TempChn->NoteFillRem -= Steps;
 		return;
 	}
-	
-	DoNoteOff((ChnMode << 7) | Channel);
-	
-	return;
+
+	DoNoteOff(ChnMode << 7 | Channel);
 }
 
 // --- MIDI Event Handlers ---
 void DoShortMidiEvent(UINT8 Command, UINT8 Value1, UINT8 Value2)
 {
-	UINT8 Channel;
 	//UINT8 TempByt;
 	UINT16 TempSht;
 	//UINT32 TempLng;
 	INT32 PitchVal;
 	MIDI_CHN* TempMid;
-	
-	Channel = Command & 0x0F;
+
+	const UINT8 Channel = Command & 0x0F;
 	switch(Command & 0xF0)
 	{
 	case 0x80:	// Note Off
@@ -1768,7 +1684,7 @@ void DoShortMidiEvent(UINT8 Command, UINT8 Value1, UINT8 Value2)
 			case 0x01:	// GS Mode
 				break;
 			case 0x02:	// XG Mode
-				TempMid->IsDrum = (Value2 == 0x7F);
+				TempMid->IsDrum = Value2 == 0x7F;
 				break;
 			case 0x03:	// MT32 Mode
 				break;
@@ -1783,7 +1699,7 @@ void DoShortMidiEvent(UINT8 Command, UINT8 Value1, UINT8 Value2)
 			ApplyCtrlToChannels(Channel, 0x03);
 			break;
 		case 0x06:	// Data Entry MSB
-			TempSht = (TempMid->RPNVal[0x00] << 8) | (TempMid->RPNVal[0x01] << 0);
+			TempSht = TempMid->RPNVal[0x00] << 8 | TempMid->RPNVal[0x01] << 0;
 			TempMid->RPNVal[0x02] = Value2;
 			
 			switch(TempSht)
@@ -1903,7 +1819,7 @@ void DoShortMidiEvent(UINT8 Command, UINT8 Value1, UINT8 Value2)
 			ApplyCtrlToChannels(Channel, 0x4C);
 			break;
 		case 0x5D:	// Chorus Depth
-			TempMid->ChnVolB = (INT8)(Value2 | ((Value2 & 0x40) << 1));
+			TempMid->ChnVolB = (INT8)(Value2 | (Value2 & 0x40) << 1);
 			ApplyCtrlToChannels(Channel, 0x5D);	// set volume boost
 			break;
 		case 0x60:	// Data Increment
@@ -1985,7 +1901,7 @@ void DoShortMidiEvent(UINT8 Command, UINT8 Value1, UINT8 Value2)
 	case 0xD0:	// Channel Aftertouch
 		break;
 	case 0xE0:	// Pitch Bend
-		PitchVal = (Value1 << 0) | (Value2 << 7);
+		PitchVal = Value1 << 0 | Value2 << 7;
 		PitchVal -= 0x2000;
 		PitchVal *= MidChn[Channel].PbDepth;
 		MidChn[Channel].Pitch = PitchVal;
@@ -2000,8 +1916,6 @@ void DoShortMidiEvent(UINT8 Command, UINT8 Value1, UINT8 Value2)
 			DoShortMidiEvent(LastMidCmd, Command, Value1);
 		break;
 	}
-	
-	return;
 }
 
 void DoLongMidiEvent(UINT8 Command, UINT8 Value, UINT32 DataLen, UINT8* Data)
@@ -2212,6 +2126,4 @@ void DoLongMidiEvent(UINT8 Command, UINT8 Value, UINT32 DataLen, UINT8* Data)
 #endif
 		break;
 	}
-	
-	return;
 }

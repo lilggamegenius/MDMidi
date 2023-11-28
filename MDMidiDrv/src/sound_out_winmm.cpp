@@ -13,7 +13,7 @@
 
 #pragma comment (lib, "winmm.lib")
 
-class sound_out_i_winmm : public sound_out
+class sound_out_i_winmm final : public sound_out
 {
 	HWAVEOUT hWaveOut;
 	
@@ -33,35 +33,25 @@ class sound_out_i_winmm : public sound_out
 public:
 	sound_out_i_winmm()
 	{
-		this->hWaveOut = NULL;
-		this->WaveHdrs = NULL;
-		//this->Buffers = NULL;
+		this->hWaveOut = nullptr;
+		this->WaveHdrs = nullptr;
+		//this->Buffers = nullptr;
 		this->paused = false;
-		
-		return;
 	}
-	
-	virtual ~sound_out_i_winmm()
-	{
+
+	~sound_out_i_winmm() override{
 		close();
-		
-		return;
 	}
-	
-	virtual const char* open(void * hwnd, unsigned sample_rate, unsigned short nch, bool floating_point,
-							unsigned max_samples_per_frame, unsigned num_frames)
-	{
-		WAVEFORMATEX WaveFmt;
-		MMRESULT RetVal;
-		unsigned int CurBuf;
-		WAVEHDR* TempHdr;
-		
+
+	const char* open(void *hwnd, unsigned sample_rate, unsigned short nch, bool floating_point,
+					 unsigned max_samples_per_frame, unsigned num_frames) override{
 		this->sample_rate = sample_rate;
 		this->nch = nch;
 		this->max_samples_per_frame = max_samples_per_frame;
 		this->num_frames = num_frames;
 		this->bytes_per_sample = floating_point ? 4 : 2;
-		
+
+		WAVEFORMATEX WaveFmt;
 		WaveFmt.wFormatTag = floating_point ? WAVE_FORMAT_IEEE_FLOAT : WAVE_FORMAT_PCM;
 		WaveFmt.nChannels = nch;
 		WaveFmt.nSamplesPerSec = sample_rate;
@@ -70,32 +60,33 @@ public:
 		WaveFmt.nAvgBytesPerSec = WaveFmt.nSamplesPerSec * WaveFmt.nBlockAlign;
 		WaveFmt.cbSize = 0;
 		
-		RetVal = waveOutOpen(&this->hWaveOut, WAVE_MAPPER, &WaveFmt, 0x00, 0x00, CALLBACK_NULL);
+		MMRESULT RetVal = waveOutOpen(&this->hWaveOut, WAVE_MAPPER, &WaveFmt, 0x00, 0x00, CALLBACK_NULL);
 		if (RetVal != MMSYSERR_NOERROR)
 			return "Opening Wave Device";
 		
 		this->buffer_size_bytes = max_samples_per_frame * this->bytes_per_sample;
 		this->WaveHdrs = new WAVEHDR[num_frames];
 		//this->Buffers = new unsigned char*[num_frames];
-		for (CurBuf = 0; CurBuf < num_frames; CurBuf ++)
+		WAVEHDR* TempHdr;
+		for (unsigned int CurBuf = 0; CurBuf < num_frames; CurBuf ++)
 		{
 			TempHdr = &this->WaveHdrs[CurBuf];
 			//this->Buffers[CurBuf] = new unsigned char[this->buffer_size_bytes];
 			//TempHdr->lpData = (LPSTR)this->Buffers[CurBuf];
-			TempHdr->lpData = (LPSTR)new unsigned char[this->buffer_size_bytes];
+			TempHdr->lpData = reinterpret_cast<LPSTR>(new unsigned char[this->buffer_size_bytes]);
 			TempHdr->dwBufferLength = this->buffer_size_bytes;
 			TempHdr->dwBytesRecorded = 0x00;
 			TempHdr->dwUser = 0x00;
 			TempHdr->dwFlags = 0x00;
 			TempHdr->dwLoops = 0x00;
-			TempHdr->lpNext = NULL;
+			TempHdr->lpNext = nullptr;
 			TempHdr->reserved = 0x00;
 			RetVal = waveOutPrepareHeader(this->hWaveOut, TempHdr, sizeof(WAVEHDR));
 			TempHdr->dwFlags |= WHDR_DONE;
 		}
 		
 #if 1
-		for (CurBuf = 0; CurBuf < num_frames; CurBuf ++)
+		for (unsigned int CurBuf = 0; CurBuf < num_frames; CurBuf ++)
 		{
 			TempHdr = &this->WaveHdrs[CurBuf];
 			
@@ -107,52 +98,47 @@ public:
 #endif
 		NextBuf = 0;
 		
-		return NULL;
+		return nullptr;
 	}
 	
-	void close(void)
+	void close()
 	{
-		if (this->hWaveOut == NULL)
+		if (this->hWaveOut == nullptr)
 			return;
-		
-		MMRESULT RetVal;
-		unsigned int CurBuf;
-		WAVEHDR* TempHdr;
-		
-		RetVal = waveOutReset(this->hWaveOut);
-		for (CurBuf = 0x00; CurBuf < this->num_frames; CurBuf ++)
+
+		MMRESULT RetVal = waveOutReset(this->hWaveOut);
+		for (unsigned int CurBuf = 0x00; CurBuf < this->num_frames; CurBuf ++)
 		{
-			TempHdr = &this->WaveHdrs[CurBuf];
+			WAVEHDR* TempHdr = &this->WaveHdrs[CurBuf];
 			
 			RetVal = waveOutUnprepareHeader(this->hWaveOut, TempHdr, sizeof(WAVEHDR));
 			//delete [] this->Buffers[CurBuf];
 			delete [] TempHdr->lpData;
 		}
-		delete [] this->WaveHdrs;	this->WaveHdrs = NULL;
-		//delete [] this->Buffers;	this->Buffers = NULL;
+		delete [] this->WaveHdrs;
+		this->WaveHdrs = nullptr;
+
+		//delete [] this->Buffers;
+		//this->Buffers = nullptr;
 		
 		RetVal = waveOutClose(this->hWaveOut);
 		if (RetVal != MMSYSERR_NOERROR)
 			return;
-		this->hWaveOut = NULL;
-		
-		return;
+		this->hWaveOut = nullptr;
 	}
 
-	virtual const char* write_frame(void* buffer, unsigned num_samples, bool wait)
-	{
+	const char* write_frame(void* buffer, unsigned num_samples, bool wait) override{
 		if (this->paused)
 		{
 			if (wait)
 				Sleep(MulDiv(num_samples / nch, 1000, sample_rate));
-			return NULL;
+			return nullptr;
 		}
-		
-		unsigned int BufWrtBytes = num_samples * this->bytes_per_sample;
-		WAVEHDR* TempHdr;
-		
+
+		const unsigned int BufWrtBytes = num_samples * this->bytes_per_sample;
+
 		assert(BufWrtBytes <= this->buffer_size_bytes);
-		TempHdr = &this->WaveHdrs[this->NextBuf];
+		WAVEHDR* TempHdr = &this->WaveHdrs[this->NextBuf];
 		if (wait)
 		{
 			while(! (TempHdr->dwFlags & WHDR_DONE))
@@ -161,7 +147,7 @@ public:
 		else
 		{
 			if (! (TempHdr->dwFlags & WHDR_DONE))
-				return NULL;
+				return nullptr;
 		}
 		
 		TempHdr->dwFlags &= ~WHDR_DONE;
@@ -172,24 +158,21 @@ public:
 		this->NextBuf ++;
 		this->NextBuf %= this->num_frames;
 		
-		return NULL;
+		return nullptr;
 	}
-	
-	virtual bool can_write(unsigned num_samples)
-	{
+
+	bool can_write(unsigned num_samples) override{
 		//unsigned int buffer_size_write = num_samples * bytes_per_sample;
 		
-		return (this->WaveHdrs[this->NextBuf].dwFlags & WHDR_DONE);
+		return this->WaveHdrs[this->NextBuf].dwFlags & WHDR_DONE;
 	}
-	
-	virtual const char* set_ratio(double ratio)
-	{
+
+	const char* set_ratio(double ratio) override{
 		//if ( !p_stream->set_ratio( ratio ) ) return "setting ratio";
 		return "Not supported";
 	}
-	
-	virtual const char* pause(bool pausing)
-	{
+
+	const char* pause(bool pausing) override{
 		MMRESULT RetVal;
 		
 		if (pausing)
@@ -201,27 +184,24 @@ public:
 		
 		this->paused = pausing;
 		
-		return NULL;
+		return nullptr;
 	}
-	
-	virtual double buffered(void)
-	{
-		unsigned int CurBuf;
-		unsigned int BufBytes;
-		unsigned int BufBytMax = this->max_samples_per_frame * this->buffer_size_bytes;
+
+	double buffered() override{
+		const unsigned int BufBytMax = this->max_samples_per_frame * this->buffer_size_bytes;
 		
-		BufBytes = 0;
-		for (CurBuf = 0x00; CurBuf < this->num_frames; CurBuf ++)
+		unsigned int BufBytes = 0;
+		for (unsigned int CurBuf = 0x00; CurBuf < this->num_frames; CurBuf ++)
 		{
 			if (! (this->WaveHdrs[CurBuf].dwFlags & WHDR_DONE))
 				BufBytes += this->WaveHdrs[CurBuf].dwBufferLength;
 		}
 		
-		return double(BufBytes) / double(BufBytMax);
+		return static_cast<double>(BufBytes) / static_cast<double>(BufBytMax);
 	}
 };
 
-sound_out* create_sound_out_winmm(void)
+sound_out* create_sound_out_winmm()
 {
 	return new sound_out_i_winmm;
 }

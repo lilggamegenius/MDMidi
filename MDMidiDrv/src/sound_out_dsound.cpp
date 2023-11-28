@@ -9,7 +9,7 @@
 
 #include "ds_stream.h"
 
-class sound_out_i_dsound : public sound_out
+class sound_out_i_dsound final : public sound_out
 {
 	ds_api    * p_api;
 	ds_stream * p_stream;
@@ -22,19 +22,19 @@ class sound_out_i_dsound : public sound_out
 public:
 	sound_out_i_dsound()
 	{
-		p_api = 0;
-		p_stream = 0;
+		p_api = nullptr;
+		p_stream = nullptr;
 		paused = false;
 	}
 
-	virtual ~sound_out_i_dsound()
+	~sound_out_i_dsound() override
 	{
 		close();
 	}
 
-	virtual const char* open( void * hwnd, unsigned sample_rate, unsigned short nch, bool floating_point, unsigned max_samples_per_frame, unsigned num_frames )
+	const char* open( void * hwnd, unsigned sample_rate, unsigned short nch, bool floating_point, unsigned max_samples_per_frame, unsigned num_frames ) override
 	{
-		p_api = ds_api_create( (HWND) hwnd );
+		p_api = ds_api_create( static_cast<HWND>(hwnd) );
 		if ( !p_api )
 		{
 			return "Initializing DirectSound";
@@ -58,7 +58,7 @@ public:
 			return "Creating DirectSound stream object";
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	void close()
@@ -66,25 +66,25 @@ public:
 		if ( p_stream )
 		{
 			p_stream->release();
-			p_stream = 0;
+			p_stream = nullptr;
 		}
 
 		if ( p_api )
 		{
 			p_api->release();
-			p_api = 0;
+			p_api = nullptr;
 		}
 	}
 
-	virtual const char* write_frame( void * buffer, unsigned num_samples, bool wait )
+	const char* write_frame( void * buffer, unsigned num_samples, bool wait ) override
 	{
 		if ( paused )
 		{
 			if ( wait ) Sleep( MulDiv( num_samples / nch, 1000, sample_rate ) );
-			return 0;
+			return nullptr;
 		}
 
-		unsigned int buffer_size_write = num_samples * bytes_per_sample;
+		const unsigned int buffer_size_write = num_samples * bytes_per_sample;
 
 		if ( wait )
 		{
@@ -93,34 +93,34 @@ public:
 
 		p_stream->write( buffer, buffer_size_write );
 
-		return 0;
+		return nullptr;
 	}
 
-	virtual bool can_write(unsigned num_samples)
+	bool can_write(unsigned num_samples) override
 	{
-		unsigned int buffer_size_write = num_samples * bytes_per_sample;
+		const unsigned int buffer_size_write = num_samples * bytes_per_sample;
 
-		return (p_stream->can_write_bytes() >= buffer_size_write);
+		return p_stream->can_write_bytes() >= buffer_size_write;
 	}
 
-	virtual const char* set_ratio( double ratio )
+	const char* set_ratio( double ratio ) override
 	{
 		if ( !p_stream->set_ratio( ratio ) ) return "setting ratio";
-		return 0;
+		return nullptr;
 	}
 
-	virtual const char* pause( bool pausing )
+	const char* pause( bool pausing ) override
 	{
 		p_stream->pause( paused = pausing );
 
-		return 0;
+		return nullptr;
 	}
 
-	virtual double buffered()
+	double buffered() override
 	{
-		unsigned bytes = p_stream->get_latency_bytes();
-		unsigned write_max_bytes = max_samples_per_frame * 2;
-		return double( bytes ) / double( write_max_bytes );
+		const unsigned bytes = p_stream->get_latency_bytes();
+		const unsigned write_max_bytes = max_samples_per_frame * 2;
+		return static_cast<double>(bytes) / static_cast<double>(write_max_bytes);
 	}
 };
 

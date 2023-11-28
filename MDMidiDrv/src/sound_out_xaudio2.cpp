@@ -7,10 +7,10 @@
 
 //#define HAVE_KS_HEADERS
 
-#include <stdint.h>
+#include <cstdint>
 #include <windows.h>
 #include <XAudio2.h>
-#include <assert.h>
+#include <cassert>
 #include <mmdeviceapi.h>
 #include <vector>
 #ifdef HAVE_KS_HEADERS
@@ -25,7 +25,7 @@ class sound_out_i_xaudio2;
 
 void xaudio2_device_changed( sound_out_i_xaudio2 * );
 
-class XAudio2_Device_Notifier : public IMMNotificationClient
+class XAudio2_Device_Notifier final : public IMMNotificationClient
 {
 	volatile LONG registered;
 	IMMDeviceEnumerator *pEnumerator;
@@ -43,18 +43,15 @@ public:
 		DeleteCriticalSection( &lock );
 	}
 
-	ULONG STDMETHODCALLTYPE AddRef()
-	{
+	ULONG STDMETHODCALLTYPE AddRef() override{
 		return 1;
 	}
 
-	ULONG STDMETHODCALLTYPE Release()
-	{
+	ULONG STDMETHODCALLTYPE Release() override{
 		return 1;
 	}
 
-	HRESULT STDMETHODCALLTYPE QueryInterface( REFIID riid, VOID **ppvInterface )
-	{
+	HRESULT STDMETHODCALLTYPE QueryInterface( REFIID riid, VOID **ppvInterface ) override{
 		if (IID_IUnknown == riid)
 		{
 			*ppvInterface = (IUnknown*)this;
@@ -65,14 +62,13 @@ public:
 		}
 		else
 		{
-			*ppvInterface = NULL;
+			*ppvInterface = nullptr;
 			return E_NOINTERFACE;
 		}
 		return S_OK;
 	}
 
-	HRESULT STDMETHODCALLTYPE OnDefaultDeviceChanged( EDataFlow flow, ERole role, LPCWSTR pwstrDeviceId )
-	{
+	HRESULT STDMETHODCALLTYPE OnDefaultDeviceChanged( EDataFlow flow, ERole role, LPCWSTR pwstrDeviceId ) override{
 		if ( flow == eRender )
 		{
 			EnterCriticalSection( &lock );
@@ -86,17 +82,17 @@ public:
 		return S_OK;
 	}
 
-	HRESULT STDMETHODCALLTYPE OnDeviceAdded( LPCWSTR pwstrDeviceId ) { return S_OK; }
-	HRESULT STDMETHODCALLTYPE OnDeviceRemoved( LPCWSTR pwstrDeviceId ) { return S_OK; }
-	HRESULT STDMETHODCALLTYPE OnDeviceStateChanged( LPCWSTR pwstrDeviceId, DWORD dwNewState ) { return S_OK; }
-	HRESULT STDMETHODCALLTYPE OnPropertyValueChanged( LPCWSTR pwstrDeviceId, const PROPERTYKEY key ) { return S_OK; }
+	HRESULT STDMETHODCALLTYPE OnDeviceAdded( LPCWSTR pwstrDeviceId ) override{ return S_OK; }
+	HRESULT STDMETHODCALLTYPE OnDeviceRemoved( LPCWSTR pwstrDeviceId ) override{ return S_OK; }
+	HRESULT STDMETHODCALLTYPE OnDeviceStateChanged( LPCWSTR pwstrDeviceId, DWORD dwNewState ) override{ return S_OK; }
+	HRESULT STDMETHODCALLTYPE OnPropertyValueChanged( LPCWSTR pwstrDeviceId, const PROPERTYKEY key ) override{ return S_OK; }
 
 	void do_register(sound_out_i_xaudio2 * p_instance)
 	{
 		if ( InterlockedIncrement( &registered ) == 1 )
 		{
-			pEnumerator = NULL;
-			HRESULT hr = CoCreateInstance( __uuidof( MMDeviceEnumerator ), NULL, CLSCTX_INPROC_SERVER, __uuidof( IMMDeviceEnumerator ), ( void** ) &pEnumerator );
+			pEnumerator = nullptr;
+			const HRESULT hr = CoCreateInstance( __uuidof( MMDeviceEnumerator ), nullptr, CLSCTX_INPROC_SERVER, __uuidof( IMMDeviceEnumerator ), ( void** ) &pEnumerator );
 			if ( SUCCEEDED( hr ) )
 			{
 				pEnumerator->RegisterEndpointNotificationCallback( this );
@@ -117,13 +113,13 @@ public:
 			{
 				pEnumerator->UnregisterEndpointNotificationCallback( this );
 				pEnumerator->Release();
-				pEnumerator = NULL;
+				pEnumerator = nullptr;
 			}
 			registered = false;
 		}
 
 		EnterCriticalSection( &lock );
-		for ( std::vector<sound_out_i_xaudio2*>::iterator it = instances.begin(); it < instances.end(); ++it )
+		for (auto it = instances.begin(); it < instances.end(); ++it)
 		{
 			if ( *it == p_instance )
 			{
@@ -137,26 +133,26 @@ public:
 
 class sound_out_i_xaudio2 : public sound_out
 {
-	class XAudio2_BufferNotify : public IXAudio2VoiceCallback
+	class XAudio2_BufferNotify final : public IXAudio2VoiceCallback
 	{
 	public:
 		HANDLE hBufferEndEvent;
 
 		XAudio2_BufferNotify() {
-			hBufferEndEvent = NULL;
-			hBufferEndEvent = CreateEvent( NULL, FALSE, FALSE, NULL );
-			assert( hBufferEndEvent != NULL );
+			hBufferEndEvent = nullptr;
+			hBufferEndEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+			assert( hBufferEndEvent != nullptr );
 		}
 
 		~XAudio2_BufferNotify() {
 			CloseHandle( hBufferEndEvent );
-			hBufferEndEvent = NULL;
+			hBufferEndEvent = nullptr;
 		}
 
 		STDMETHOD_( void, OnBufferEnd ) ( void *pBufferContext ) {
-			assert( hBufferEndEvent != NULL );
+			assert( hBufferEndEvent != nullptr );
 			SetEvent( hBufferEndEvent );
-			sound_out_i_xaudio2 * psnd = ( sound_out_i_xaudio2 * ) pBufferContext;
+			auto *psnd = static_cast<sound_out_i_xaudio2 *>(pBufferContext);
 			if ( psnd ) psnd->OnBufferEnd();
 		}
 
@@ -173,7 +169,7 @@ class sound_out_i_xaudio2 : public sound_out
 	void OnBufferEnd()
 	{
 		InterlockedDecrement( &buffered_count );
-		LONG buffer_read_cursor = this->buffer_read_cursor;
+		const LONG buffer_read_cursor = this->buffer_read_cursor;
 		samples_played += samples_in_buffer[ buffer_read_cursor ];
 		this->buffer_read_cursor = ( buffer_read_cursor + 1 ) % num_frames;
 	}
@@ -208,22 +204,21 @@ public:
 		buffered_count = 0;
 		device_changed = false;
 
-		xaud = NULL;
-		mVoice = NULL;
-		sVoice = NULL;
-		sample_buffer = NULL;
+		xaud = nullptr;
+		mVoice = nullptr;
+		sVoice = nullptr;
+		sample_buffer = nullptr;
 		ZeroMemory( &vState, sizeof( vState ) );
 
-		if (! com_initialized)
+		if (!com_initialized)
 		{
-			HRESULT hRes = CoInitialize(NULL);
+			const HRESULT hRes = CoInitialize(nullptr);
 			com_initialized = ! FAILED(hRes);
 		}
 		g_notifier.do_register( this );
 	}
 
-	virtual ~sound_out_i_xaudio2()
-	{
+	~sound_out_i_xaudio2() override{
 		g_notifier.do_unregister( this );
 		if (com_initialized)
 		{
@@ -239,8 +234,7 @@ public:
 		device_changed = true;
 	}
 
-	virtual const char* open( void * hwnd, unsigned sample_rate, unsigned short nch, bool floating_point, unsigned max_samples_per_frame, unsigned num_frames )
-	{
+	const char* open( void * hwnd, unsigned sample_rate, unsigned short nch, bool floating_point, unsigned max_samples_per_frame, unsigned num_frames ) override{
 		this->hwnd = hwnd;
 		this->sample_rate = sample_rate;
 		this->nch = nch;
@@ -277,14 +271,14 @@ public:
 			nch,
 			sample_rate,
 			0,
-			NULL,
-			NULL );
+			nullptr,
+		nullptr);
 		if (FAILED(hr)) return "Creating XAudio2 mastering voice";
 		hr = xaud->CreateSourceVoice( &sVoice, &wfx, 0, 4.0f, &notify );
 		if (FAILED(hr)) return "Creating XAudio2 source voice";
 		hr = sVoice->Start( 0 );
 		if (FAILED(hr)) return "Starting XAudio2 voice";
-		hr = sVoice->SetFrequencyRatio((float)1.0f);
+		hr = sVoice->SetFrequencyRatio(1.0f);
 		if (FAILED(hr)) return "Setting XAudio2 voice frequency ratio";
 		device_changed = false;
 		buffered_count = 0;
@@ -294,7 +288,7 @@ public:
 		sample_buffer = new uint8_t[ max_samples_per_frame * num_frames * bytes_per_sample ];
 		samples_in_buffer = new UINT64[ num_frames ];
 		memset( samples_in_buffer, 0, sizeof( UINT64 ) * num_frames );
-		return NULL;
+		return nullptr;
 	}
 
 	void close()
@@ -304,39 +298,38 @@ public:
 				sVoice->Stop( 0 );
 			}
 			sVoice->DestroyVoice();
-			sVoice = NULL;
+			sVoice = nullptr;
 		}
 
 		if( mVoice ) {
 			mVoice->DestroyVoice();
-			mVoice = NULL;
+			mVoice = nullptr;
 		}
 
 		if( xaud ) {
 			xaud->Release();
-			xaud = NULL;
+			xaud = nullptr;
 		}
 
 		delete [] sample_buffer;
-		sample_buffer = NULL;
+		sample_buffer = nullptr;
 		delete [] samples_in_buffer;
-		samples_in_buffer = NULL;
+		samples_in_buffer = nullptr;
 	}
 
-	virtual const char* write_frame( void * buffer, unsigned num_samples, bool wait )
-	{
+	const char* write_frame( void * buffer, unsigned num_samples, bool wait ) override{
 		if ( device_changed )
 		{
 			close();
 			reopen_count = 5;
 			device_changed = false;
-			return 0;
+			return nullptr;
 		}
 
 		if ( paused )
 		{
 			if ( wait ) Sleep( MulDiv( num_samples / nch, 1000, sample_rate ) );
-			return 0;
+			return nullptr;
 		}
 
 		if ( reopen_count )
@@ -353,7 +346,7 @@ public:
 			else
 			{
 				if ( wait ) Sleep( MulDiv( num_samples / nch, 1000, sample_rate ) );
-				return 0;
+				return nullptr;
 			}
 		}
 
@@ -366,22 +359,21 @@ public:
 				}
 				// there is at least one free buffer
 				break;
-			} else {
-				// wait for one buffer to finish playing
-				const DWORD timeout_ms = ( max_samples_per_frame / nch ) * num_frames * 1000 / sample_rate;
-				if ( WaitForSingleObject( notify.hBufferEndEvent, timeout_ms ) == WAIT_TIMEOUT )
-				{
-					// buffer has stalled, likely by the whole XAudio2 system failing, so we should tear it down and attempt to reopen it
-					close();
-					reopen_count = 5;
+			}
+			// wait for one buffer to finish playing
+			const DWORD timeout_ms = max_samples_per_frame / nch * num_frames * 1000 / sample_rate;
+			if ( WaitForSingleObject( notify.hBufferEndEvent, timeout_ms ) == WAIT_TIMEOUT )
+			{
+				// buffer has stalled, likely by the whole XAudio2 system failing, so we should tear it down and attempt to reopen it
+				close();
+				reopen_count = 5;
 
-					return 0;
-				}
+				return nullptr;
 			}
 		}
 		samples_in_buffer[ buffer_write_cursor ] = num_samples / nch;
 		XAUDIO2_BUFFER buf = {0};
-		unsigned num_bytes = num_samples * bytes_per_sample;
+		const unsigned num_bytes = num_samples * bytes_per_sample;
 		buf.AudioBytes = num_bytes;
 		buf.pAudioData = sample_buffer + max_samples_per_frame * buffer_write_cursor * bytes_per_sample;
 		buf.pContext = this;
@@ -390,17 +382,16 @@ public:
 		if( sVoice->SubmitSourceBuffer( &buf ) == S_OK )
 		{
 			InterlockedIncrement( &buffered_count );
-			return 0;
+			return nullptr;
 		}
 
 		close();
 		reopen_count = 60 * 5;
 
-		return 0;
+		return nullptr;
 	}
 
-	virtual const char* pause( bool pausing )
-	{
+	const char* pause( bool pausing ) override{
 		if ( pausing )
 		{
 			if ( ! paused )
@@ -408,8 +399,7 @@ public:
 				paused = true;
 				if ( !reopen_count )
 				{
-					HRESULT hr = sVoice->Stop( 0 );
-					if ( FAILED(hr) )
+					if (const HRESULT hr = sVoice->Stop( 0 ); FAILED(hr))
 					{
 						close();
 						reopen_count = 60 * 5;
@@ -424,8 +414,7 @@ public:
 				paused = false;
 				if ( !reopen_count )
 				{
-					HRESULT hr = sVoice->Start( 0 );
-					if ( FAILED(hr) )
+					if (const HRESULT hr = sVoice->Start( 0 ); FAILED(hr))
 					{
 						close();
 						reopen_count = 60 * 5;
@@ -434,27 +423,24 @@ public:
 			}
 		}
 
-		return 0;
+		return nullptr;
 	}
 
-	virtual bool can_write(unsigned num_samples)
-	{
+	bool can_write(unsigned num_samples) override{
 		return true;
 	}
 
-	virtual const char* set_ratio( double ratio )
-	{
+	const char* set_ratio( double ratio ) override{
 		if ( !reopen_count && FAILED( sVoice->SetFrequencyRatio( static_cast<float>(ratio) ) ) ) return "setting ratio";
-		return 0;
+		return nullptr;
 	}
 
-	virtual double buffered()
-	{
+	double buffered() override{
 		if ( reopen_count ) return 0.0;
 		sVoice->GetState( &vState );
 		double buffered_count = vState.BuffersQueued;
-		INT64 samples_played = vState.SamplesPlayed - this->samples_played;
-		buffered_count -= double( samples_played ) / double( max_samples_per_frame / nch );
+		const INT64 samples_played = vState.SamplesPlayed - this->samples_played;
+		buffered_count -= static_cast<double>(samples_played) / static_cast<double>(max_samples_per_frame / nch);
 		return buffered_count;
 	}
 };

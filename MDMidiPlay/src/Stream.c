@@ -107,9 +107,7 @@ UINT8 SaveFile(UINT32 FileLen, void* TempData)
 
 UINT8 SoundLogging(UINT8 Mode)
 {
-	UINT8 RetVal;
-	
-	RetVal = (UINT8)SoundLog;
+	UINT8 RetVal = (UINT8)SoundLog;
 	switch (Mode)
 	{
 	case 0x00:
@@ -134,9 +132,6 @@ UINT8 SoundLogging(UINT8 Mode)
 
 UINT8 StartStream(UINT8 DeviceID)
 {
-	UINT32 RetVal;
-	UINT16 Cnt;
-	HANDLE WaveOutThreadHandle;
 	DWORD WaveOutThreadID;
 	//char TestStr[0x80];
 	
@@ -163,16 +158,20 @@ UINT8 StartStream(UINT8 DeviceID)
 	
 	PauseThread = true;
 	CloseThread = false;
-	
-	WaveOutThreadHandle = CreateThread(NULL, 0x00, &WaveOutThread, NULL, 0x00,
-										&WaveOutThreadID);
+
+	const HANDLE WaveOutThreadHandle = CreateThread(NULL,
+													0x00,
+													&WaveOutThread,
+													NULL,
+													0x00,
+													&WaveOutThreadID);
 	if(WaveOutThreadHandle == NULL)
 	{
 		return 0xC8;		// CreateThread failed
 	}
 	CloseHandle(WaveOutThreadHandle);
 	
-	RetVal = waveOutOpen(&hWaveOut, ((UINT)DeviceID - 1), &WaveFmt, 0x00, 0x00, CALLBACK_NULL);
+	UINT32 RetVal = waveOutOpen(&hWaveOut, (UINT)DeviceID - 1, &WaveFmt, 0x00, 0x00, CALLBACK_NULL);
 	if(RetVal != MMSYSERR_NOERROR)
 	{
 		CloseThread = true;
@@ -183,7 +182,7 @@ UINT8 StartStream(UINT8 DeviceID)
 	//sprintf(TestStr, "Buffer 0,0:\t%p\nBuffer 0,1:\t%p\nBuffer 1,0:\t%p\nBuffer 1,1:\t%p\n",
 	//		&BufferOut[0][0], &BufferOut[0][1], &BufferOut[1][0], &BufferOut[1][1]);
 	//AfxMessageBox(TestStr);
-	for (Cnt = 0x00; Cnt < AUDIOBUFFERU; Cnt ++)
+	for (UINT16 Cnt = 0x00; Cnt < AUDIOBUFFERU; Cnt ++)
 	{
 		WaveHdrOut[Cnt].lpData = BufferOut[Cnt];	// &BufferOut[Cnt][0x00];
 		WaveHdrOut[Cnt].dwBufferLength = BUFFERSIZE;
@@ -209,7 +208,6 @@ UINT8 StartStream(UINT8 DeviceID)
 
 UINT8 StopStream(bool SkipWOClose)
 {
-	UINT32 RetVal;
 	UINT16 Cnt;
 	
 	if (! WaveOutOpen)
@@ -228,7 +226,7 @@ UINT8 StopStream(bool SkipWOClose)
 	}
 	WaveOutOpen = false;
 	
-	RetVal = waveOutReset(hWaveOut);
+	UINT32 RetVal = waveOutReset(hWaveOut);
 	for (Cnt = 0x00; Cnt < AUDIOBUFFERU; Cnt ++)
 		RetVal = waveOutUnprepareHeader(hWaveOut, &WaveHdrOut[Cnt], sizeof(WAVEHDR));
 	
@@ -261,8 +259,6 @@ void PauseStream(bool PauseOn)
 		break;
 	}*/
 	PauseThread = PauseOn;
-	
-	return;
 }
 
 static DWORD WINAPI WaveOutThread(void* Arg)
@@ -270,7 +266,6 @@ static DWORD WINAPI WaveOutThread(void* Arg)
 #ifdef NDEBUG
 	UINT32 RetVal;
 #endif
-	UINT16 CurBuf;
 	WAVE_16BS* TempBuf;
 	//char TestStr[0x80];
 	
@@ -295,7 +290,7 @@ static DWORD WINAPI WaveOutThread(void* Arg)
 			break;
 		
 		BufCheck();
-		for (CurBuf = 0x00; CurBuf < AUDIOBUFFERU; CurBuf ++)
+		for (UINT16 CurBuf = 0x00; CurBuf < AUDIOBUFFERU; CurBuf ++)
 		{
 			if (WaveHdrOut[CurBuf].dwFlags & WHDR_DONE)
 			{
@@ -323,9 +318,7 @@ static DWORD WINAPI WaveOutThread(void* Arg)
 
 static void BufCheck(void)
 {
-	UINT16 CurBuf;
-	
-	for (CurBuf = 0x00; CurBuf < AUDIOBUFFERU; CurBuf ++)
+	for (UINT16 CurBuf = 0x00; CurBuf < AUDIOBUFFERU; CurBuf ++)
 	{
 		if (WaveHdrOut[CurBuf].dwFlags & WHDR_DONE)
 		{
@@ -336,6 +329,4 @@ static void BufCheck(void)
 			}
 		}
 	}
-	
-	return;
 }

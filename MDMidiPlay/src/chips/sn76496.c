@@ -185,9 +185,9 @@ static unsigned short int FNumLimit;
 UINT8 sn76496_ready_r(void *chip, offs_t offset)
 {
 	//sn76496_state *R = get_safe_token(device);
-	sn76496_state *R = (sn76496_state*)chip;
+	const sn76496_state *R = (sn76496_state*)chip;
 	//stream_update(R->Channel);
-	return (R->CyclestoREADY? 0 : 1);
+	return R->CyclestoREADY? 0 : 1;
 }
 
 //WRITE8_DEVICE_HANDLER( sn76496_stereo_w )
@@ -207,7 +207,7 @@ void sn76496_write_reg(void *chip, offs_t offset, UINT8 data)
 {
 	//sn76496_state *R = get_safe_token(device);
 	sn76496_state *R = (sn76496_state*)chip;
-	int n, r, c;
+	int n, r;
 
 
 	/* update the output buffer before changing the registers */
@@ -228,20 +228,20 @@ void sn76496_write_reg(void *chip, offs_t offset, UINT8 data)
 	{
 		r = (data & 0x70) >> 4;
 		R->LastRegister = r;
-		R->Register[r] = (R->Register[r] & 0x3f0) | (data & 0x0f);
+		R->Register[r] = R->Register[r] & 0x3f0 | data & 0x0f;
 	}
 	else
     {
 		r = R->LastRegister;
 	}
-	c = r/2;
+	const int c = r / 2;
 	switch (r)
 	{
 		case 0:	/* tone 0 : frequency */
 		case 2:	/* tone 1 : frequency */
 		case 4:	/* tone 2 : frequency */
-		    if ((data & 0x80) == 0) R->Register[r] = (R->Register[r] & 0x0f) | ((data & 0x3f) << 4);
-			if ((R->Register[r] != 0) || (R->Freq0IsMax == 0)) R->Period[c] = R->Register[r];
+		    if ((data & 0x80) == 0) R->Register[r] = R->Register[r] & 0x0f | (data & 0x3f) << 4;
+			if (R->Register[r] != 0 || R->Freq0IsMax == 0) R->Period[c] = R->Register[r];
 			else R->Period[c] = 0x400;
 			if (r == 4)
 			{
@@ -255,17 +255,17 @@ void sn76496_write_reg(void *chip, offs_t offset, UINT8 data)
 		case 5:	/* tone 2 : volume */
 		case 7:	/* noise  : volume */
 			R->Volume[c] = R->VolTable[data & 0x0f];
-			if ((data & 0x80) == 0) R->Register[r] = (R->Register[r] & 0x3f0) | (data & 0x0f);
+			if ((data & 0x80) == 0) R->Register[r] = R->Register[r] & 0x3f0 | data & 0x0f;
 			break;
 		case 6:	/* noise  : frequency, mode */
 			{
 #ifdef _DEBUG
 				//if ((data & 0x80) == 0) logerror("sn76489: write to reg 6 with bit 7 clear; data was %03x, new write is %02x! report this to LN!\n", R->Register[6], data);
 #endif
-				if ((data & 0x80) == 0) R->Register[r] = (R->Register[r] & 0x3f0) | (data & 0x0f);
+				if ((data & 0x80) == 0) R->Register[r] = R->Register[r] & 0x3f0 | data & 0x0f;
 				n = R->Register[6];
 				/* N/512,N/1024,N/2048,Tone #3 output */
-				R->Period[3] = ((n&3) == 3) ? 2 * R->Period[2] : (1 << (5+(n&3)));
+				R->Period[3] = (n&3) == 3 ? 2 * R->Period[2] : 1 << 5+(n&3);
 				R->RNG = R->FeedbackMask;
 			}
 			break;
@@ -285,10 +285,9 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 	INT32 out = 0;
 	INT32 out2 = 0;
 	INT32 vol[4];
-	UINT8 NGPMode;
 	INT32 ggst[2];
 
-	NGPMode = (R->NgpFlags >> 7) & 0x01;
+	const UINT8 NGPMode = R->NgpFlags >> 7 & 0x01;
 	if (NGPMode)
 		R2 = R->NgpChip2;
 
@@ -347,7 +346,7 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 			{
 			// if noisemode is 1, both taps are enabled
 			// if noisemode is 0, the lower tap, whitenoisetap2, is held at 0
-				if (((R->RNG & R->WhitenoiseTap1)?1:0) ^ ((((R->RNG & R->WhitenoiseTap2)?1:0))*(NOISEMODE)))
+				if ((R->RNG & R->WhitenoiseTap1?1:0) ^ (R->RNG & R->WhitenoiseTap2?1:0)*(NOISEMODE))
 				{
 					R->RNG >>= 1;
 					R->RNG |= R->FeedbackMask;
@@ -405,8 +404,8 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 				
 				if (R->Stereo)
 				{
-					ggst[0] = (R->StereoMask & (0x10 << i)) ? 0x01 : 0x00;
-					ggst[1] = (R->StereoMask & (0x01 << i)) ? 0x01 : 0x00;
+					ggst[0] = R->StereoMask & 0x10 << i ? 0x01 : 0x00;
+					ggst[1] = R->StereoMask & 0x01 << i ? 0x01 : 0x00;
 				}
 				if (R->Period[i] > 1 || i == 3)
 				{
@@ -430,8 +429,8 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 				// Tone Channel 1-3
 				if (R->Stereo)
 				{
-					ggst[0] = (R->StereoMask & (0x10 << i)) ? 0x01 : 0x00;
-					ggst[1] = (R->StereoMask & (0x01 << i)) ? 0x01 : 0x00;
+					ggst[0] = R->StereoMask & 0x10 << i ? 0x01 : 0x00;
+					ggst[1] = R->StereoMask & 0x01 << i ? 0x01 : 0x00;
 				}
 				for (i = 0; i < 3; i ++)
 				{
@@ -473,8 +472,8 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 				// Noise Channel
 				if (R->Stereo)
 				{
-					ggst[0] = (R->StereoMask & 0x80) ? 0x01 : 0x00;
-					ggst[1] = (R->StereoMask & 0x08) ? 0x01 : 0x00;
+					ggst[0] = R->StereoMask & 0x80 ? 0x01 : 0x00;
+					ggst[1] = R->StereoMask & 0x08 ? 0x01 : 0x00;
 				}
 				else
 				{
@@ -491,9 +490,9 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 		
 		if(R->Negate) { out = -out; out2 = -out2; }
 
-		*(lbuffer++) = out >> 1;	// Output is Bipolar
+		*lbuffer++ = out >> 1;	// Output is Bipolar
 		//if (R->Stereo) *(rbuffer++) = out2;
-		*(rbuffer++) = out2 >> 1;
+		*rbuffer++ = out2 >> 1;
 		samples--;
 	}
 }
@@ -502,19 +501,15 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 
 static void SN76496_set_gain(sn76496_state *R,int gain)
 {
-	int i;
-	double out;
-
-
 	gain &= 0xff;
 
 	/* increase max output basing on gain (0.2 dB per step) */
-	out = MAX_OUTPUT / 4; // four channels, each gets 1/4 of the total range
+	double out = MAX_OUTPUT / 4; // four channels, each gets 1/4 of the total range
 	while (gain-- > 0)
 		out *= 1.023292992;	/* = (10 ^ (0.2/20)) */
 
 	/* build volume table (2dB per step) */
-	for (i = 0;i < 15;i++)
+	for (int i = 0;i < 15;i++)
 	{
 		/* limit volume to avoid clipping */
 		if (out > MAX_OUTPUT / 4) R->VolTable[i] = MAX_OUTPUT / 4;
@@ -531,7 +526,7 @@ static void SN76496_set_gain(sn76496_state *R,int gain)
 //static int SN76496_init(running_device *device, sn76496_state *R, int stereo)
 static int SN76496_init(int clock, sn76496_state *R, int stereo)
 {
-	int sample_rate = clock/2;
+	const int sample_rate = clock/2;
 	int i;
 
 	//R->Channel = stream_create(device,0,(stereo?2:1),sample_rate,R,SN76496Update);
@@ -576,19 +571,16 @@ static int SN76496_init(int clock, sn76496_state *R, int stereo)
 //static void generic_start(running_device *device, int feedbackmask, int noisetap1, int noisetap2, int negate, int stereo, int clockdivider, int freq0)
 static int generic_start(sn76496_state *chip, int clock, int feedbackmask, int noisetap1, int noisetap2, int negate, int stereo, int clockdivider, int freq0)
 {
-	int sample_rate;
-	
 	//sn76496_state *chip = get_safe_token(device);
 	//sn76496_state *chip;
-	sn76496_state *chip2;
-	
+
 	//if (SN76496_init(device,chip,stereo) != 0)
 	//	fatalerror("Error creating SN76496 chip");
-	sample_rate = SN76496_init(clock & 0x7FFFFFFF, chip, stereo);
-	if ((clock & 0x80000000) && LastChipInit != NULL)
+	int sample_rate = SN76496_init(clock & 0x7FFFFFFF, chip, stereo);
+	if (clock & 0x80000000 && LastChipInit != NULL)
 	{
 		// Activate special NeoGeoPocket Mode
-		chip2 = LastChipInit;
+		sn76496_state* chip2 = LastChipInit;
 		chip2->NgpFlags = 0x80 | 0x00;
 		chip->NgpFlags = 0x80 | 0x01;
 		chip->NgpChip2 = chip2;
@@ -638,24 +630,21 @@ static int generic_start(sn76496_state *chip, int clock, int feedbackmask, int n
 unsigned long int sn76496_start(void **chip, int clock, int shiftregwidth, int noisetaps,
 								int negate, int stereo, int clockdivider, int freq0)
 {
-	sn76496_state* sn_chip;
 	int ntap[2];
-	int curbit;
-	int curtap;
-	
-	sn_chip = (sn76496_state*)malloc(sizeof(sn76496_state));
+
+	sn76496_state* sn_chip = (sn76496_state *)malloc(sizeof(sn76496_state));
 	if (sn_chip == NULL)
 		return 0;
 	memset(sn_chip, 0x00, sizeof(sn76496_state));
 	*chip = sn_chip;
 	
 	// extract single noise tap bits
-	curtap = 0;
-	for (curbit = 0; curbit < 16; curbit ++)
+	int curtap = 0;
+	for (int curbit = 0; curbit < 16; curbit ++)
 	{
-		if (noisetaps & (1 << curbit))
+		if (noisetaps & 1 << curbit)
 		{
-			ntap[curtap] = (1 << curbit);
+			ntap[curtap] = 1 << curbit;
 			curtap ++;
 			if (curtap >= 2)
 				break;
@@ -667,7 +656,7 @@ unsigned long int sn76496_start(void **chip, int clock, int shiftregwidth, int n
 		curtap ++;
 	}
 	
-	return generic_start(sn_chip, clock, 1 << (shiftregwidth - 1), ntap[0], ntap[1],
+	return generic_start(sn_chip, clock, 1 << shiftregwidth - 1, ntap[0], ntap[1],
 						negate, ! stereo, clockdivider ? 1 : 8, freq0);
 }
 
@@ -676,15 +665,13 @@ void sn76496_shutdown(void *chip)
 	sn76496_state *R = (sn76496_state*)chip;
 	
 	free(R);
-	return;
 }
 
 void sn76496_reset(void *chip)
 {
-	sn76496_state *R;
 	UINT8 i;
 	
-	R = (sn76496_state*)chip;
+	sn76496_state* R = (sn76496_state *)chip;
 	
 	for (i = 0;i < 4;i++) R->Volume[i] = 0;
 
@@ -705,26 +692,19 @@ void sn76496_reset(void *chip)
 
 	R->RNG = R->FeedbackMask;
 	R->Output[3] = R->RNG & 1;
-	
-	return;
 }
 
 void sn76496_freq_limiter(int clock, int clockdiv, int sample_rate)
 {
-	FNumLimit = (unsigned short int)((clock / (clockdiv ? 2.0 : 16.0)) / sample_rate);
-	
-	return;
+	FNumLimit = (unsigned short int)(clock / (clockdiv ? 2.0 : 16.0) / sample_rate);
 }
 
 void sn76496_set_mutemask(void *chip, UINT32 MuteMask)
 {
 	sn76496_state *R = (sn76496_state*)chip;
-	UINT8 CurChn;
-	
-	for (CurChn = 0; CurChn < 4; CurChn ++)
-		R->MuteMsk[CurChn] = (MuteMask & (1 << CurChn)) ? 0 : ~0;
-	
-	return;
+
+	for (UINT8 CurChn = 0; CurChn < 4; CurChn ++)
+		R->MuteMsk[CurChn] = MuteMask & 1 << CurChn ? 0 : ~0;
 }
 
 // function parameters: device, feedback destination tap, feedback source taps,

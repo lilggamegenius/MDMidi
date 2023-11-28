@@ -180,8 +180,6 @@ void DeinitChips(void)
 	for (CurChip = 0x00; CurChip < PSG_CHIPS; CurChip ++)
 		device_stop_sn764xx(CurChip);
 	OPN_CHIPS = PSG_CHIPS = 0x00;
-	
-	return;
 }
 
 void ResetChips(void)
@@ -192,8 +190,6 @@ void ResetChips(void)
 		device_reset_ym2612(CurChip);
 	for (CurChip = 0x00; CurChip < PSG_CHIPS; CurChip ++)
 		device_reset_sn764xx(CurChip);
-	
-	return;
 }
 
 /*INLINE INT16 Limit2Short(INT32 Value)
@@ -230,8 +226,6 @@ INLINE void GetChipStream(UINT8 ChipID, UINT8 ChipNum, INT32** Buffer, UINT32 Bu
 		memset(Buffer[1], 0x00, BufSize * sizeof(INT32));
 		break;
 	}
-	
-	return;
 }
 
 // I recommend 11 bits as it's fast and accurate
@@ -253,9 +247,6 @@ INLINE void GetChipStream(UINT8 ChipID, UINT8 ChipNum, INT32** Buffer, UINT32 Bu
 
 static void ResampleChipStream(UINT8 ChipID, WAVE_32BS* RetSample, UINT32 Length)
 {
-	UINT8 ChipNum;
-	UINT8 ChipIDP;	// ChipID with Paired flag
-	CAUD_ATTR* CAA;
 	INT32* CurBufL;
 	INT32* CurBufR;
 	INT32* StreamPnt[0x02];
@@ -269,15 +260,12 @@ static void ResampleChipStream(UINT8 ChipID, WAVE_32BS* RetSample, UINT32 Length
 	SLINT InPosL;
 	INT64 TempSmpL;
 	INT64 TempSmpR;
-	INT32 TempS32L;
-	INT32 TempS32R;
 	INT32 SmpCnt;	// must be signed, else I'm getting calculation errors
-	INT32 CurSmpl;
 	UINT64 ChipSmpRate;
 	
-	CAA = (CAUD_ATTR*)&ChipAudio[ChipID];
-	ChipIDP = CAA->ChipType;
-	ChipNum = ChipID % OPN_CHIPS;
+	CAUD_ATTR* CAA = &ChipAudio[ChipID];
+	const UINT8 ChipIDP = CAA->ChipType; // ChipID with Paired flag
+	const UINT8 ChipNum = ChipID % OPN_CHIPS;
 	CurBufL = StreamBufs[0x00];
 	CurBufR = StreamBufs[0x01];
 	
@@ -319,9 +307,9 @@ static void ResampleChipStream(UINT8 ChipID, WAVE_32BS* RetSample, UINT32 Length
 				else
 				{
 					// I'm using InPos
-					TempS32L = CurBufL[0x00];
-					TempS32R = CurBufR[0x00];
-					for (CurSmpl = 0x01; CurSmpl < SmpCnt; CurSmpl ++)
+					INT32 TempS32L = CurBufL[0x00];
+					INT32 TempS32R = CurBufR[0x00];
+					for (INT32 CurSmpl = 0x01; CurSmpl < SmpCnt; CurSmpl ++)
 					{
 						TempS32L += CurBufL[CurSmpl];
 						TempS32R += CurBufR[CurSmpl];
@@ -360,10 +348,10 @@ static void ResampleChipStream(UINT8 ChipID, WAVE_32BS* RetSample, UINT32 Length
 				SmpFrc = getfriction(InPos);
 				
 				// Linear interpolation
-				TempSmpL = ((INT64)CurBufL[InPre] * (FIXPNT_FACT - SmpFrc)) +
-							((INT64)CurBufL[InNow] * SmpFrc);
-				TempSmpR = ((INT64)CurBufR[InPre] * (FIXPNT_FACT - SmpFrc)) +
-							((INT64)CurBufR[InNow] * SmpFrc);
+				TempSmpL = (INT64)CurBufL[InPre] * (FIXPNT_FACT - SmpFrc) +
+							(INT64)CurBufL[InNow] * SmpFrc;
+				TempSmpR = (INT64)CurBufR[InPre] * (FIXPNT_FACT - SmpFrc) +
+							(INT64)CurBufR[InNow] * SmpFrc;
 				RetSample[OutPos].Left += (INT32)(TempSmpL * CAA->Volume / SmpCnt);
 				RetSample[OutPos].Right += (INT32)(TempSmpR * CAA->Volume / SmpCnt);
 			}
@@ -465,17 +453,12 @@ static void ResampleChipStream(UINT8 ChipID, WAVE_32BS* RetSample, UINT32 Length
 	//	CAA = CAA->Paired;
 	//	ChipIDP |= 0x80;
 	//} while(CAA != NULL);
-	
-	return;
 }
 
 void UpdateEngine(UINT32 SampleCount);
 
 void FillBuffer32(WAVE_32BS* Buffer, UINT32 BufferSize)
 {
-	UINT32 CurSmpl;
-	WAVE_32BS* TempBuf;
-	UINT8 CurChip;
 	
 	UpdateEngine(BufferSize);
 	if (Buffer == NULL)
@@ -485,13 +468,13 @@ void FillBuffer32(WAVE_32BS* Buffer, UINT32 BufferSize)
 	if (NullSamples == 0xFFFFFFFF)
 		return;
 	
-	for (CurSmpl = 0x00; CurSmpl < BufferSize; CurSmpl ++)
+	for (UINT32 CurSmpl = 0x00; CurSmpl < BufferSize; CurSmpl ++)
 	{
-		TempBuf = &Buffer[CurSmpl];
+		WAVE_32BS* TempBuf = &Buffer[CurSmpl];
 		
-		for (CurChip = 0x00; CurChip < OPN_CHIPS; CurChip ++)
+		for (UINT8 CurChip = 0x00; CurChip < OPN_CHIPS; CurChip ++)
 			UpdateDAC(CurChip, 1);
-		for (CurChip = 0x00; CurChip < OPN_CHIPS + PSG_CHIPS; CurChip ++)
+		for (UINT8 CurChip = 0x00; CurChip < OPN_CHIPS + PSG_CHIPS; CurChip ++)
 			ResampleChipStream(CurChip, TempBuf, 1);
 		
 		if (! TempBuf->Left && ! TempBuf->Right)
@@ -500,25 +483,19 @@ void FillBuffer32(WAVE_32BS* Buffer, UINT32 BufferSize)
 	
 	if (NullSamples >= SampleRate)
 		NullSamples = 0xFFFFFFFF;
-	
-	return;
 }
 
 static void UpdateDAC(UINT8 ChipID, UINT32 Samples)
 {
-	DAC_STATE* TempDAC;
-	UINT32 RemDelta;
-	INT16 SmplData;
-	
-	TempDAC = &DACState[ChipID];
+	DAC_STATE* TempDAC = &DACState[ChipID];
 	if (TempDAC->Sample == NULL)
 		return;
 	
-	RemDelta = TempDAC->Delta * Samples;
+	//UINT32 RemDelta = TempDAC->Delta * Samples;
 	TempDAC->SmplFric += TempDAC->Delta * Samples;
 	if (TempDAC->SmplFric & 0xFFFF0000)
 	{
-		TempDAC->SmplPos += (TempDAC->SmplFric >> 16);
+		TempDAC->SmplPos += TempDAC->SmplFric >> 16;
 		TempDAC->SmplFric &= 0x0000FFFF;
 		if (TempDAC->SmplPos >= TempDAC->Sample->Size)
 		{
@@ -533,37 +510,32 @@ static void UpdateDAC(UINT8 ChipID, UINT32 Samples)
 		}
 		else
 		{
-			SmplData = TempDAC->Sample->Data[TempDAC->SmplPos] - 0x80;
+			INT16 SmplData = TempDAC->Sample->Data[TempDAC->SmplPos] - 0x80;
 			SmplData *= DAC_VOL_ARRAY[TempDAC->VolIdx];
 			SmplData >>= TempDAC->VolShift;
 			SmplData = (SmplData >> 8) + 0x80;
 			ym2612_w(0x00, 0x00 | 0x01, (UINT8)SmplData);
 		}
 	}
-	
-	return;
 }
 
 #define MulDivRoundU(Mul1, Mul2, Div)	(UINT32)( ((UINT64)Mul1 * Mul2 + Div / 2) / Div)
 void PlayDACSample(UINT8 ChipID, UINT8 Sound)
 {
-	DAC_STATE* TempDAC;
-	DAC_TABLE* TempTbl;
-	UINT32 BaseFreq;
-	UINT32 FreqDiv;
-	
 	if (ChipID >= OPN_CHIPS || Sound >= 0x80)
 		return;
 	
-	TempDAC = &DACState[ChipID];
-	TempTbl = &DACMasterPlaylist[Sound];
-	if ((TempTbl->Sample & 0x80) || TempDAC->Volume >= 0x10)
+	DAC_STATE* TempDAC = &DACState[ChipID];
+	const DAC_TABLE* TempTbl = &DACMasterPlaylist[Sound];
+	if (TempTbl->Sample & 0x80 || TempDAC->Volume >= 0x10)
 	{
 		TempDAC->Sample = NULL;
 		return;
 	}
 	TempDAC->Sample = &DACSmpls[TempTbl->Sample];
-	
+
+	UINT32 BaseFreq;
+	UINT32 FreqDiv;
 	if (! TempDAC->RateOverrd)
 	{
 		BaseFreq = TempTbl->Freq;
@@ -582,37 +554,28 @@ void PlayDACSample(UINT8 ChipID, UINT8 Sound)
 		ym2612_w(0x00, 0x02 | 0x00, 0xB6);
 		ym2612_w(0x00, 0x02 | 0x01, TempTbl->Pan);
 	}
-	
-	return;
 }
 
 void OverrideDACRate(UINT8 ChipID, UINT8 Rate)
 {
-	DAC_STATE* TempDAC;
-	UINT32 FreqDiv;
-	
 	if (ChipID >= OPN_CHIPS)
 		return;
 	
-	TempDAC = &DACState[ChipID];
+	DAC_STATE* TempDAC = &DACState[ChipID];
 	TempDAC->RateOverrd = Rate;
 	if (TempDAC->Sample == NULL || ! Rate)
 		return;
-	
-	FreqDiv = (UINT32)(SampleRate * (DAC_RateDiv + TempDAC->RateOverrd));
+
+	const UINT32 FreqDiv = (UINT32)(SampleRate * (DAC_RateDiv + TempDAC->RateOverrd));
 	TempDAC->Delta = MulDivRoundU(0x10000, DAC_BaseRate, FreqDiv);
-	
-	return;
 }
 
 void SetDACVol(UINT8 ChipID, UINT8 Volume)
 {
-	DAC_STATE* TempDAC;
-	
 	if (ChipID >= OPN_CHIPS)
 		return;
 	
-	TempDAC = &DACState[ChipID];
+	DAC_STATE* TempDAC = &DACState[ChipID];
 	TempDAC->Volume = Volume;
 	if (TempDAC->Volume > 0x0F)
 	{
@@ -622,13 +585,9 @@ void SetDACVol(UINT8 ChipID, UINT8 Volume)
 	
 	TempDAC->VolIdx = Volume & 0x03;
 	TempDAC->VolShift = (Volume & 0x0C) >> 2;
-	
-	return;
 }
 
 void Sound_WakeUp(void)
 {
 	NullSamples = 0x00;
-	
-	return;
 }

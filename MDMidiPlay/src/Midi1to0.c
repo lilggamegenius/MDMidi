@@ -30,33 +30,25 @@ static unsigned short int LittleBigEndianCnvS(unsigned short int Value);
 unsigned char MIDI1to0(unsigned long int SrcLen, unsigned char* SrcData,
 						unsigned long int* RetDstLen, unsigned char** RetDstData)
 {
-	unsigned long int CurPos;
 	unsigned short int TrkCnt;
 	unsigned short int CurTrk;
 	MIDITRK_INF MstTrk;
-	MIDITRK_INF* TrkData;
 	MIDITRK_INF* CurTData;
-	unsigned long int DstLen;
 	unsigned char* DstData;
 	unsigned long int DataLen;
-	unsigned long int LastTick;
-	unsigned char TempByt;
 	unsigned short int TempSht;
 	unsigned long int TempLng;
 	bool WriteDelay;
 	// Last Delay Backup Values
-	unsigned long int LD_Pos;
-	unsigned long int LD_Tick;
-	unsigned long int EvtsWritten;
-	
-	CurPos = 0x00;
+
+	unsigned long int CurPos = 0x00;
 	memcpy(&TempLng, &SrcData[CurPos + 0x00], 0x04);
 	if (TempLng != FCC_MTHD)
 		return 0xF0;
 	memcpy(&TempLng, &SrcData[CurPos + 0x04], 0x04);
 	DataLen = LittleBigEndianCnvL(TempLng);
 	
-	DstLen = SrcLen * 2;
+	unsigned long int DstLen = SrcLen * 2;
 	DstData = (unsigned char*)malloc(DstLen);
 	memcpy(&DstData[CurPos + 0x00], &FCC_MTHD, 0x04);
 	memcpy(&DstData[CurPos + 0x04], &TempLng, 0x04);
@@ -75,7 +67,7 @@ unsigned char MIDI1to0(unsigned long int SrcLen, unsigned char* SrcData,
 	memcpy(&DstData[CurPos + 0x04], &SrcData[CurPos + 0x04], DataLen - 0x04);
 	CurPos += DataLen;
 	
-	TrkData = (MIDITRK_INF*)malloc(TrkCnt * sizeof(MIDITRK_INF));
+	MIDITRK_INF* TrkData = (MIDITRK_INF *)malloc(TrkCnt * sizeof(MIDITRK_INF));
 	for (CurTrk = 0x00; CurTrk < TrkCnt; CurTrk ++)
 	{
 		memcpy(&TempLng, &SrcData[CurPos + 0x00], 0x04);
@@ -111,7 +103,7 @@ unsigned char MIDI1to0(unsigned long int SrcLen, unsigned char* SrcData,
 		CurTData->TickPos += TempLng;
 	}
 	
-	LastTick = 0x00000000;
+	unsigned long int LastTick = 0x00000000;
 	MstTrk.TickPos = 0x00000000;
 	do
 	{
@@ -129,15 +121,15 @@ unsigned char MIDI1to0(unsigned long int SrcLen, unsigned char* SrcData,
 		}
 		MstTrk.TickPos = TempLng;
 		
-		LD_Pos = MstTrk.CurPos;
-		LD_Tick = LastTick;
+		unsigned long int LD_Pos = MstTrk.CurPos;
+		unsigned long int LD_Tick = LastTick;
 		DataLen = WriteMIDIValue(DstData + MstTrk.CurPos, MstTrk.TickPos - LastTick);
 		LastTick = MstTrk.TickPos;
 		MstTrk.CurPos += DataLen;
 		
 		// Write Events
 		TempSht = 0x0000;
-		EvtsWritten = 0x00000000;
+		unsigned long int EvtsWritten = 0x00000000;
 		WriteDelay = false;
 		for (CurTrk = 0x00; CurTrk < TrkCnt; CurTrk ++)
 		{
@@ -168,7 +160,7 @@ unsigned char MIDI1to0(unsigned long int SrcLen, unsigned char* SrcData,
 					MstTrk.CurPos += DataLen;
 					WriteDelay = false;
 				}
-				TempByt = CopyMIDIEvent(SrcData, DstData, CurTData, &MstTrk);
+				const unsigned char TempByt = CopyMIDIEvent(SrcData, DstData, CurTData, &MstTrk);
 				switch(TempByt)
 				{
 				case 0x00:
@@ -187,7 +179,7 @@ unsigned char MIDI1to0(unsigned long int SrcLen, unsigned char* SrcData,
 				TempSht ++;
 		}
 		
-		if (! WriteDelay && (TempSht < TrkCnt))
+		if (! WriteDelay && TempSht < TrkCnt)
 		{
 			MstTrk.CurPos = LD_Pos;
 			LastTick = LD_Tick;
@@ -219,11 +211,8 @@ unsigned char MIDI1to0(unsigned long int SrcLen, unsigned char* SrcData,
 
 static unsigned long int ReadMIDIValue(unsigned char* FileData, unsigned long int* Value)
 {
-	unsigned char* DataPnt;
-	unsigned long int TempLng;
-	
-	DataPnt = FileData;
-	TempLng = 0x00000000;
+	const unsigned char* DataPnt = FileData;
+	unsigned long int TempLng = 0x00000000;
 	while(*DataPnt & 0x80)
 	{
 		TempLng <<= 7;
@@ -240,12 +229,8 @@ static unsigned long int ReadMIDIValue(unsigned char* FileData, unsigned long in
 
 static unsigned long int WriteMIDIValue(unsigned char* FileData, unsigned long int Value)
 {
-	unsigned char* DataPnt;
-	unsigned char ByteCount;
-	unsigned long int TempLng;
-	
-	TempLng = Value;
-	ByteCount = 0x00;
+	unsigned long int TempLng = Value;
+	unsigned char ByteCount = 0x00;
 	do
 	{
 		TempLng >>= 7;
@@ -253,14 +238,14 @@ static unsigned long int WriteMIDIValue(unsigned char* FileData, unsigned long i
 	} while(TempLng);
 	
 	TempLng = Value;
-	DataPnt = FileData + (ByteCount - 0x01);
-	*DataPnt = 0x00 | ((unsigned char)TempLng & 0x7F);
+	unsigned char* DataPnt = FileData + (ByteCount - 0x01);
+	*DataPnt = 0x00 | (unsigned char)TempLng & 0x7F;
 	TempLng >>= 7;
 	
 	while(TempLng)
 	{
 		DataPnt --;
-		*DataPnt = 0x80 | ((unsigned char)TempLng & 0x7F);
+		*DataPnt = 0x80 | (unsigned char)TempLng & 0x7F;
 		TempLng >>= 7;
 	}
 	
@@ -356,14 +341,14 @@ static unsigned char CopyMIDIEvent(unsigned char* SrcData, unsigned char* DstDat
 
 static unsigned long int LittleBigEndianCnvL(unsigned long int Value)
 {
-	return ((Value & 0xFF000000) >> 24) |
-			((Value & 0x00FF0000) >> 8) |
-			((Value & 0x0000FF00) << 8) |
-			((Value & 0x000000FF) << 24);
+	return (Value & 0xFF000000) >> 24 |
+			(Value & 0x00FF0000) >> 8 |
+			(Value & 0x0000FF00) << 8 |
+			(Value & 0x000000FF) << 24;
 }
 
 static unsigned short int LittleBigEndianCnvS(unsigned short int Value)
 {
-	return ((Value & 0xFF00) >> 8) |
-			((Value & 0x00FF) << 8);
+	return (Value & 0xFF00) >> 8 |
+			(Value & 0x00FF) << 8;
 }

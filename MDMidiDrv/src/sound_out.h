@@ -1,10 +1,9 @@
-#ifndef _sound_out_h_
-#define _sound_out_h_
+#pragma once
 
 class sound_out
 {
 public:
-	virtual ~sound_out() {}
+	virtual ~sound_out() = default;
 
 	virtual const char* open( void * hwnd, unsigned sample_rate, unsigned short nch, bool floating_point, unsigned max_samples_per_frame, unsigned num_frames ) = 0;
 
@@ -21,6 +20,4 @@ public:
 
 sound_out * create_sound_out_ds();
 sound_out * create_sound_out_xaudio2();
-sound_out* create_sound_out_winmm(void);
-
-#endif
+sound_out* create_sound_out_winmm();

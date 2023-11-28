@@ -29,13 +29,11 @@ static void DecompressSampleData(DAC_SAMPLE* DACSmpl, UINT8 Compr);
 
 void InitMappingData(void)
 {
-	UINT8 CurBnk;
 	UINT8 CurDrm;
-	DRUM_SND_MAP* TempDrm;
-	
+
 	for (CurDrm = 0x00; CurDrm < 0x80; CurDrm ++)
 	{
-		TempDrm = &DrumMapping.Drums[CurDrm];
+		DRUM_SND_MAP* TempDrm = &DrumMapping.Drums[CurDrm];
 		
 		TempDrm->Type = 0x00;
 		TempDrm->ID = 0x00;
@@ -44,7 +42,7 @@ void InitMappingData(void)
 	}
 	
 	GYBData.FileVer = 0x00;
-	for (CurBnk = 0x00; CurBnk < 0x02; CurBnk ++)
+	for (UINT8 CurBnk = 0x00; CurBnk < 0x02; CurBnk ++)
 	{
 		for (CurDrm = 0x00; CurDrm < 0x80; CurDrm ++)
 			GYBData.InsMap[CurBnk].Ins[CurDrm].EntryCount = 0x00;
@@ -63,20 +61,14 @@ void InitMappingData(void)
 	memset(DACMasterPlaylist, 0x00, sizeof(DACMasterPlaylist));
 	for (CurDrm = 0x00; CurDrm < 0x80; CurDrm ++)
 		DACMasterPlaylist[CurDrm].Sample = 0xFF;
-	
-	return;
 }
 
 
 UINT8 LoadGYBFile(const TCHAR* FileName)
 {
-	FILE* hFile;
-	UINT32 FileLen;
-	UINT8* FileData;
-	UINT8 RetVal;
 	UINT16 TempSht;
 	
-	hFile = _tfopen(FileName, _T("rb"));
+	FILE* hFile = _tfopen(FileName, _T("rb"));
 	if (hFile == NULL)
 		return 0xFF;
 	
@@ -88,12 +80,12 @@ UINT8 LoadGYBFile(const TCHAR* FileName)
 	}
 	
 	fseek(hFile, 0x00, SEEK_END);
-	FileLen = ftell(hFile);
+	UINT32 FileLen = ftell(hFile);
 	fseek(hFile, 0x00, SEEK_SET);
 	if (FileLen > 0x10000)
 		FileLen = 0x10000;	// 64 KB are really enough for 512 instruments
 	
-	FileData = (UINT8*)malloc(FileLen);
+	UINT8* FileData = (UINT8 *)malloc(FileLen);
 	if (FileData == NULL)
 	{
 		fclose(hFile);
@@ -102,39 +94,34 @@ UINT8 LoadGYBFile(const TCHAR* FileName)
 	fread(FileData, 0x01, FileLen, hFile);
 	
 	fclose(hFile);
-	
-	RetVal = LoadGYBData_v3(FileLen, FileData, &GYBData);
+
+	const UINT8 RetVal = LoadGYBData_v3(FileLen, FileData, &GYBData);
 	return RetVal;
 }
 
 void FreeGYBFile(void)
 {
 	FreeGYBData_v3(&GYBData);
-	return;
 }
 
 
 UINT8 LoadMappingFile(const TCHAR* FileName)
 {
-	FILE* hFile;
-	char TempStr[0x08];
-	UINT8 CurDrm;
-	DRUM_SND_MAP* TempDrm;
-	
-	hFile = _tfopen(FileName, _T("rb"));
+	FILE* hFile = _tfopen(FileName, _T("rb"));
 	if (hFile == NULL)
 		return 0xFF;
-	
+
+	char TempStr[0x08];
 	fread(TempStr, 0x01, 0x08, hFile);
-	if (memcmp(TempStr, SIG_MAP, 0x08))
+	if (memcmp(TempStr, SIG_MAP, 0x08) != 0)
 	{
 		fclose(hFile);
 		return 0x80;	// invalid file
 	}
 	
-	for (CurDrm = 0x00; CurDrm < 0x80; CurDrm ++)
+	for (UINT8 CurDrm = 0x00; CurDrm < 0x80; CurDrm ++)
 	{
-		TempDrm = &DrumMapping.Drums[CurDrm];
+		DRUM_SND_MAP* TempDrm = &DrumMapping.Drums[CurDrm];
 		
 		TempDrm->Type = (UINT8)fgetc(hFile);
 		TempDrm->ID = (UINT8)fgetc(hFile);
@@ -150,18 +137,14 @@ UINT8 LoadMappingFile(const TCHAR* FileName)
 
 UINT8 LoadPSGEnvFile(const TCHAR* FileName)
 {
-	FILE* hFile;
-	UINT8 CurEnv;
 	char TempStr[0x07];
-	UINT8 TempByt;
-	PSG_ENVELOPE* TempEnv;
-	
-	hFile = _tfopen(FileName, _T("rb"));
+
+	FILE* hFile = _tfopen(FileName, _T("rb"));
 	if (hFile == NULL)
 		return 0xFF;
 	
 	fread(TempStr, 0x01, 0x07, hFile);
-	if (memcmp(TempStr, SIG_ENV, 0x07))
+	if (memcmp(TempStr, SIG_ENV, 0x07) != 0)
 	{
 		fclose(hFile);
 		return 0x80;	// invalid file
@@ -171,10 +154,10 @@ UINT8 LoadPSGEnvFile(const TCHAR* FileName)
 	//if (PSGEnvData.EnvCount > PSGEnvData.EnvAlloc)
 	//	PSGEnvData.EnvCount = PSGEnvData.EnvAlloc;
 	PSGEnvData.Envelope = (PSG_ENVELOPE*)malloc(PSGEnvData.EnvCount * sizeof(PSG_ENVELOPE));
-	for (CurEnv = 0x00; CurEnv < PSGEnvData.EnvCount; CurEnv ++)
+	for (UINT8 CurEnv = 0x00; CurEnv < PSGEnvData.EnvCount; CurEnv ++)
 	{
-		TempEnv = &PSGEnvData.Envelope[CurEnv];
-		TempByt = (UINT8)fgetc(hFile);
+		PSG_ENVELOPE* TempEnv = &PSGEnvData.Envelope[CurEnv];
+		const UINT8 TempByt = fgetc(hFile);
 		if (TempByt)
 		{
 			TempEnv->Name = (char*)malloc(TempByt + 1);
@@ -198,15 +181,12 @@ UINT8 LoadPSGEnvFile(const TCHAR* FileName)
 
 void FreePSGEnvelopes(void)
 {
-	UINT8 CurEnv;
-	PSG_ENVELOPE* TempEnv;
-	
 	if (PSGEnvData.Envelope == NULL)
 		return;
 	
-	for (CurEnv = 0x00; CurEnv < PSGEnvData.EnvCount; CurEnv ++)
+	for (UINT8 CurEnv = 0x00; CurEnv < PSGEnvData.EnvCount; CurEnv ++)
 	{
-		TempEnv = &PSGEnvData.Envelope[CurEnv];
+		const PSG_ENVELOPE* TempEnv = &PSGEnvData.Envelope[CurEnv];
 		if (TempEnv->Name !=NULL)
 			free(TempEnv->Name);
 		if (TempEnv->Data != NULL);
@@ -214,8 +194,6 @@ void FreePSGEnvelopes(void)
 	}
 	free(PSGEnvData.Envelope);	PSGEnvData.Envelope = NULL;
 	PSGEnvData.EnvCount = 0x00;
-	
-	return;
 }
 
 
@@ -364,7 +342,7 @@ UINT8 LoadDACData(const TCHAR* FileName)
 			}
 			else if (! _stricmp(TempStr, "RateDiv"))
 			{
-				DACDivider = (float)(strtod(TempPnt, NULL));
+				DACDivider = (float)strtod(TempPnt, NULL);
 			}
 		}
 	}
@@ -383,16 +361,13 @@ static UINT8 LoadDACSample(UINT8 DACSnd, const char* FileName, UINT8 Compr, UINT
 {
 	UINT8 CurSmpl;
 	DAC_SAMPLE* TempSmpl;
-	DAC_TABLE* TempTbl;
-	size_t TempInt;
-	FILE* hFile;
-	
+
 	if (*FileName == '\0')
 		return 0x01;
 	if (DACSnd & 0x80)
 		return 0x01;
 	
-	TempTbl = &DACMasterPlaylist[DACSnd];
+	DAC_TABLE* TempTbl = &DACMasterPlaylist[DACSnd];
 	TempTbl->Freq = Freq;
 	TempTbl->Rate = Rate;
 	TempTbl->Pan = Pan;
@@ -420,11 +395,11 @@ static UINT8 LoadDACSample(UINT8 DACSnd, const char* FileName, UINT8 Compr, UINT
 	
 	if (TempSmpl->File != NULL)
 		free(TempSmpl->File);
-	TempInt = strlen(FileName) + 1;
+	size_t TempInt = strlen(FileName) + 1;
 	TempSmpl->File = (char*)malloc(TempInt * sizeof(char));
 	strcpy(TempSmpl->File, FileName);
 	
-	hFile = fopen(TempSmpl->File, "rb");
+	FILE* hFile = fopen(TempSmpl->File, "rb");
 	if (hFile == NULL)
 	{
 		printf("Error opening %s\n", TempSmpl->File);
@@ -432,7 +407,7 @@ static UINT8 LoadDACSample(UINT8 DACSnd, const char* FileName, UINT8 Compr, UINT
 		free(TempSmpl->File);	TempSmpl->File = NULL;
 		TempTbl->Sample = 0xFF;
 		
-		if (CurSmpl == (DACSmplCount - 1))
+		if (CurSmpl == DACSmplCount - 1)
 			DACSmplCount --;
 		return 0xFF;
 	}
@@ -462,17 +437,15 @@ static void DecompressSampleData(DAC_SAMPLE* DACSmpl, UINT8 Compr)
 {
 	UINT32 CurSPos;	// Source Pos
 	UINT32 CurDPos;	// Destination Pos
-	UINT32 SSize;
-	UINT8* SData;
 	UINT32 DSize;
 	UINT8* DData;
 	UINT8 DPCMVal;
 	
 	if (Compr == DACCOMPR_NONE)
 		return;
-	
-	SSize = DACSmpl->Size;
-	SData = DACSmpl->Data;
+
+	const UINT32 SSize = DACSmpl->Size;
+	UINT8* SData = DACSmpl->Data;
 	switch(Compr)
 	{
 	case DACCOMPR_DPCM:
@@ -499,23 +472,16 @@ static void DecompressSampleData(DAC_SAMPLE* DACSmpl, UINT8 Compr)
 	DACSmpl->Size = DSize;
 	DACSmpl->Data = DData;
 	free(SData);
-	
-	return;
 }
 
 void FreeDACData(void)
 {
-	UINT8 CurSmpl;
-	DAC_SAMPLE* TempSmpl;
-	
-	for (CurSmpl = 0x00; CurSmpl < DACSmplCount; CurSmpl ++)
+	for (UINT8 CurSmpl = 0x00; CurSmpl < DACSmplCount; CurSmpl ++)
 	{
-		TempSmpl = &DACSmpls[CurSmpl];
+		DAC_SAMPLE* TempSmpl = &DACSmpls[CurSmpl];
 		free(TempSmpl->File);	TempSmpl->File = NULL;
 		TempSmpl->Size = 0;
 		free(TempSmpl->Data);	TempSmpl->Data = NULL;
 	}
 	DACSmplCount = 0x00;
-	
-	return;
 }

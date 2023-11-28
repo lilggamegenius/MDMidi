@@ -43,9 +43,9 @@ class c_insync
 private:
 	critical_section & m_section;
 public:
-	c_insync(critical_section * p_section) throw() : m_section(*p_section) {m_section.enter();}
-	c_insync(critical_section & p_section) throw() : m_section(p_section) {m_section.enter();}
-	~c_insync() throw() {m_section.leave();}
+	explicit c_insync(critical_section * p_section) noexcept : m_section(*p_section) {m_section.enter();}
+	explicit c_insync(critical_section & p_section) noexcept : m_section(p_section) {m_section.enter();}
+	~c_insync() noexcept {m_section.leave();}
 };
 
 #define insync(X) c_insync blah____sync(X)
@@ -57,13 +57,13 @@ namespace
 		std::vector<char> buffer;
 		unsigned readptr,writeptr,used,size;
 	public:
-		circular_buffer(unsigned p_size) : buffer(p_size), readptr(0), writeptr(0), size(p_size), used(0) {}
-		unsigned data_available() {return used;}
-		unsigned free_space() {return size-used;}
+		explicit circular_buffer(unsigned p_size) : buffer(p_size), readptr(0), writeptr(0), size(p_size), used(0) {}
+		[[nodiscard]] unsigned data_available() const {return used;}
+		[[nodiscard]] unsigned free_space() const {return size-used;}
 		bool write(const void * src,unsigned bytes)
 		{
 			if (bytes>free_space()) return false;
-			const char * srcptr = reinterpret_cast<const char*>(src);
+			auto srcptr = static_cast<const char*>(src);
 			while(bytes)
 			{
 				unsigned delta = size - writeptr;
@@ -249,8 +249,7 @@ void ds_api_i::g_thread_proc()
 
 			bool b_deleted = false;
 			{
-				unsigned n;
-				for(n=0;n<g_streams.size();)
+				for(unsigned n = 0;n<g_streams.size();)
 				{
 					ds_stream_i * ptr = g_streams[n];
 					if (g_streams[n]->update()) n++;
@@ -339,7 +338,7 @@ bool ds_stream_i::update()
 	if (p_dsb==0)
 	{
 		write_max_ms = buffer_ms;
-		int buffer_size_ms = write_max_ms > 2000 ? write_max_ms + 2000 : write_max_ms * 2;
+		const int buffer_size_ms = write_max_ms > 2000 ? write_max_ms + 2000 : write_max_ms * 2;
 		int prebuffer_size_ms = write_max_ms/2;
 		if (prebuffer_size_ms > 10000) prebuffer_size_ms = 10000;
 		prebuffer_bytes = ms2bytes(prebuffer_size_ms);
@@ -427,7 +426,7 @@ bool ds_stream_i::update()
 		}
 		else
 		{
-			int latency_bytes_old = latency_bytes;
+			const int latency_bytes_old = latency_bytes;
 			long buffer_position;
 			if (FAILED(p_dsb->GetCurrentPosition((DWORD*)&buffer_position,0))) buffer_position = 0;
 			int bytes = last_write - buffer_position;
@@ -474,19 +473,17 @@ bool ds_stream_i::update()
 
 	for(;;)
 	{
-		int write_start,write_max,write_delta;
-
-		write_start = last_write;
+		int write_start = last_write;
 		
-		write_max = latency_bytes>=0 ? write_max_bytes - latency_bytes : write_max_bytes;
+		int write_max = latency_bytes >= 0 ? write_max_bytes - latency_bytes : write_max_bytes;
 
-		write_delta = 0;
+		int write_delta = 0;
 
 		int chunk_delta = incoming.data_available();
 
 		if (!prebuffering && latency_bytes<write_min_bytes)
 		{
-			int d = write_min_bytes - latency_bytes;
+			const int d = write_min_bytes - latency_bytes;
 			write_start += d;
 			write_delta += d;
 			write_max -= d;
@@ -586,7 +583,7 @@ unsigned ds_stream_i::can_write_bytes()
 	{
 		unsigned rv = write_max_bytes - get_latency_bytes();
 		if ((signed)rv<0) rv = 0;
-		unsigned max = incoming.free_space();
+		const unsigned max = incoming.free_space();
 		if (rv>max) rv=max;
 		return rv;
 	}
@@ -645,7 +642,7 @@ bool ds_stream_i::set_ratio(double ratio)
 
 
 
-ds_api * ds_api_create(HWND appwindow) {return appwindow ? (ds_api*)(new ds_api_i(appwindow)) : 0;}
+ds_api * ds_api_create(HWND appwindow) {return appwindow ? (ds_api*)new ds_api_i(appwindow) : 0;}
 
 
 void ds_api_i::set_device(const GUID * id)
@@ -688,7 +685,7 @@ ds_api_i::~ds_api_i()
 		g_shutting_down = true;
 		if (g_thread)
 		{
-			HANDLE h_process = GetCurrentProcess();
+			const HANDLE h_process = GetCurrentProcess();
 			DuplicateHandle(h_process,g_thread,h_process,&blah,0,FALSE,DUPLICATE_SAME_ACCESS);
 		}
 	}

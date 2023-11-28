@@ -36,7 +36,7 @@ stream_sample_t* DUMMYBUF[0x02] = {NULL, NULL};
 /* update request from fm.c */
 void ym2612_update_request(void *param)
 {
-	ym2612_state *info = (ym2612_state *)param;
+	const ym2612_state *info = (ym2612_state *)param;
 	//stream_update(info->stream);
 	
 	ym2612_update_one(info->chip, DUMMYBUF, 0);
@@ -50,7 +50,7 @@ void ym2612_update_request(void *param)
 void ym2612_stream_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 {
 	//ym2612_state *info = (ym2612_state *)param;
-	ym2612_state *info = &YM2612Data[ChipID];
+	const ym2612_state *info = &YM2612Data[ChipID];
 	
 	ym2612_update_one(info->chip, outputs, samples);
 }
@@ -59,14 +59,12 @@ void ym2612_stream_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 int device_start_ym2612(UINT8 ChipID, int clock)
 {
 	//static const ym2612_interface dummy = { 0 };
-	ym2612_state *info;
-	int rate;
 
 	if (ChipID >= MAX_CHIPS)
 		return 0;
 	
-	info = &YM2612Data[ChipID];
-	rate = clock/72;
+	ym2612_state* info = &YM2612Data[ChipID];
+	int rate = clock / 72;
 	if ((CHIP_SAMPLING_MODE == 0x01 && rate < CHIP_SAMPLE_RATE) ||
 		CHIP_SAMPLING_MODE == 0x02)
 		rate = CHIP_SAMPLE_RATE;
@@ -81,13 +79,13 @@ int device_start_ym2612(UINT8 ChipID, int clock)
 
 void device_stop_ym2612(UINT8 ChipID)
 {
-	ym2612_state *info = &YM2612Data[ChipID];
+	const ym2612_state *info = &YM2612Data[ChipID];
 	ym2612_shutdown(info->chip);
 }
 
 void device_reset_ym2612(UINT8 ChipID)
 {
-	ym2612_state *info = &YM2612Data[ChipID];
+	const ym2612_state *info = &YM2612Data[ChipID];
 	ym2612_reset_chip(info->chip);
 }
 
@@ -100,13 +98,13 @@ void device_reset_ym2612(UINT8 ChipID)
 
 void ym2612_w(UINT8 ChipID, offs_t offset, UINT8 data)
 {
-	ym2612_state *info = &YM2612Data[ChipID];
+	const ym2612_state *info = &YM2612Data[ChipID];
 	ym2612_write(info->chip, offset & 3, data);
 }
 
 
 void ym2612_set_mute_mask(UINT8 ChipID, UINT32 MuteMask)
 {
-	ym2612_state *info = &YM2612Data[ChipID];
+	const ym2612_state *info = &YM2612Data[ChipID];
 	ym2612_set_mutemask(info->chip, MuteMask);
 }

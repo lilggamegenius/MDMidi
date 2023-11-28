@@ -156,9 +156,9 @@ static volatile int modm_closed = 1;
 static CRITICAL_SECTION mim_section;
 static volatile int stop_thread = 0;
 static volatile int reset_synth[2] = {0, 0};
-static HANDLE hCalcThread = NULL;
+static HANDLE hCalcThread = nullptr;
 static DWORD processPriority;
-static HANDLE load_sfevent = NULL;
+static HANDLE load_sfevent = nullptr;
 
 
 static bool sound_out_float = false;
@@ -175,16 +175,16 @@ static TCHAR MapPath[MAX_PATH];
 static TCHAR DACPath[MAX_PATH];
 
 static UINT8 sound_drv_mode;
-static sound_out* sound_driver = NULL;
+static sound_out* sound_driver = nullptr;
 
 //static HINSTANCE bass = 0;			// bass handle
 //static HINSTANCE bassmidi = 0;			// bassmidi handle
 //TODO: Can be done with: HMODULE GetDriverModuleHandle(HDRVR hdrvr);  (once DRV_OPEN has been called)
-static HINSTANCE hinst = NULL;             //main DLL handle
+static HINSTANCE hinst = nullptr;             //main DLL handle
 
 #ifdef DEBUG_LOG_MID_DATA
 static TCHAR MidLogPath[MAX_PATH];
-static FILE* hLogMid = NULL;
+static FILE* hLogMid = nullptr;
 static UINT32 MidLogDelay = 0;
 #endif
 
@@ -194,7 +194,7 @@ static UINT32 MidLogDelay = 0;
 #define	fprintd		fprintf
 
 static TCHAR LogPath[MAX_PATH];
-static FILE* hLogFile = NULL;
+static FILE* hLogFile = nullptr;
 #endif
 static UINT32 SentBufCount;
 
@@ -219,11 +219,11 @@ public:
 		class_atom = RegisterClassEx( &cls );
 		if ( class_atom )
 		{
-			m_hWnd = CreateWindowEx( 0, (LPCTSTR) class_atom, _T("MDMidiDrv"), 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, hinst, NULL );
+			m_hWnd = CreateWindowEx( 0, (LPCTSTR) class_atom, _T("MDMidiDrv"), 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, hinst, nullptr );
 		}
 		else
 		{
-			m_hWnd = NULL;
+			m_hWnd = nullptr;
 		}
 	}
 
@@ -236,7 +236,7 @@ public:
 	HWND get_hwnd(void) const { return m_hWnd; }
 };
 
-message_window * g_msgwnd = NULL;
+message_window * g_msgwnd = nullptr;
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved )
 {
@@ -248,7 +248,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved )
 		load_settings();
 #ifdef DEBUG_LOG_MSGS
 		hLogFile = _tfopen(LogPath, _T("at"));
-		if (hLogFile != NULL)
+		if (hLogFile != nullptr)
 		{
 			fprintf(hLogFile, "DllMain: DLL_PROCESS_ATTACH\n");
 			fclose(hLogFile);
@@ -259,10 +259,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved )
 	else if (fdwReason == DLL_PROCESS_DETACH)
 	{
 		DoStopClient();
-		if (hCalcThread != NULL)
+		if (hCalcThread != nullptr)
 		{
 			WaitForSingleObject(hCalcThread, INFINITE);
-			CloseHandle(hCalcThread);	hCalcThread = NULL;
+			CloseHandle(hCalcThread);	hCalcThread = nullptr;
 		}
 		delete g_msgwnd;
 	}
@@ -276,46 +276,44 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved )
 #endif
 static bool LoadDriverData(FILE* hDebugFile)
 {
-	UINT8 RetVal;
-	
-	if (hDebugFile != NULL)
+	if (hDebugFile != nullptr)
 		fprintf(hDebugFile, "Loading GYB file: " FMT_TSTR "\n", GYBPath), fflush(hDebugFile);
-	RetVal = LoadGYBFile(GYBPath);
-	if (hDebugFile != NULL)
+	UINT8 RetVal = LoadGYBFile(GYBPath);
+	if (hDebugFile != nullptr)
 		fprintf(hDebugFile, "    result: %02X\n", RetVal);
 	//if (RetVal)
 	//	return false;
 	
-	if (hDebugFile != NULL)
+	if (hDebugFile != nullptr)
 		fprintf(hDebugFile, "Loading PSG Envelopes: " FMT_TSTR "\n", PSGPath), fflush(hDebugFile);
 	RetVal = LoadPSGEnvFile(PSGPath);
-	if (hDebugFile != NULL)
+	if (hDebugFile != nullptr)
 		fprintf(hDebugFile, "    result: %02X\n", RetVal);
 	//if (RetVal)
 	//	return false;
 	
-	if (hDebugFile != NULL)
+	if (hDebugFile != nullptr)
 		fprintf(hDebugFile, "Loading Mappings: " FMT_TSTR "\n", MapPath), fflush(hDebugFile);
 	RetVal = LoadMappingFile(MapPath);
-	if (hDebugFile != NULL)
+	if (hDebugFile != nullptr)
 		fprintf(hDebugFile, "    result: %02X\n", RetVal);
 	//if (RetVal)
 	//	return false;
 	
-	if (hDebugFile != NULL)
+	if (hDebugFile != nullptr)
 		fprintf(hDebugFile, "Loading DAC Data: " FMT_TSTR "\n", DACPath), fflush(hDebugFile);
 	RetVal = LoadDACData(DACPath);
-	if (hDebugFile != NULL)
+	if (hDebugFile != nullptr)
 		fprintf(hDebugFile, "    result: %02X\n", RetVal);
 	//if (RetVal)
 	//	return false;
 	
-	if (hDebugFile != NULL)
-		fprintf(hDebugFile, "Done.\n", PSGPath), fflush(hDebugFile);
+	if (hDebugFile != nullptr)
+		fprintf(hDebugFile, "Done.\n"), fflush(hDebugFile);
 	return true;
 }
 
-LRESULT DoDriverLoad(void)
+LRESULT DoDriverLoad()
 {
 	//The DRV_LOAD message is always the first message that a device driver receives. 
 	//Notifies the driver that it has been loaded. The driver should make sure that any hardware and supporting drivers it needs to function properly are present.
@@ -367,7 +365,7 @@ argument
 #ifdef DEBUG_LOG_MSGS
 	//hLogFile = fopen(LOGFILE_PATH_LOG, "at");
 	hLogFile = _tfopen(LogPath, _T("at"));
-	if (hLogFile != NULL)
+	if (hLogFile != nullptr)
 	{
 		fprintf(hLogFile, "DoDriverOpen %d: OK, %d drivers\n", driverNum, driverCount);
 		fclose(hLogFile);
@@ -378,9 +376,7 @@ argument
 
 LRESULT DoDriverClose(DWORD_PTR dwDriverId, HDRVR hdrvr, LONG lParam1, LONG lParam2)
 {
-	int i;
-	
-	for (i = 0; i < MAX_DRIVERS; i ++)
+	for (int i = 0; i < MAX_DRIVERS; i ++)
 	{
 		if (drivers[i].open && drivers[i].hdrvr == hdrvr)
 		{
@@ -389,7 +385,7 @@ LRESULT DoDriverClose(DWORD_PTR dwDriverId, HDRVR hdrvr, LONG lParam1, LONG lPar
 #ifdef DEBUG_LOG_MSGS
 			//hLogFile = fopen(LOGFILE_PATH_LOG, "at");
 			hLogFile = _tfopen(LogPath, _T("at"));
-			if (hLogFile != NULL)
+			if (hLogFile != nullptr)
 			{
 				fprintf(hLogFile, "DoDriverClose %d: OK, %u drivers\n", i, driverCount);
 				fclose(hLogFile);
@@ -460,8 +456,8 @@ HRESULT modGetCaps(UINT uDeviceID, MIDIOUTCAPS* capsPtr, DWORD capsSize)
 	MIDIOUTCAPSW* myCapsW;
 	MIDIOUTCAPS2A* myCaps2A;
 	MIDIOUTCAPS2W* myCaps2W;
-	CHAR synthName[] = "mid2smps MIDI Driver";
-	WCHAR synthNameW[] = L"mid2smps MIDI Driver";
+	const CHAR synthName[] = "mid2smps MIDI Driver";
+	const WCHAR synthNameW[] = L"mid2smps MIDI Driver";
 	
 	ZeroMemory(capsPtr, capsSize);
 #if 0	// for debugging
@@ -473,7 +469,7 @@ HRESULT modGetCaps(UINT uDeviceID, MIDIOUTCAPS* capsPtr, DWORD capsSize)
 						capsSize,
 						sizeof(MIDIOUTCAPSA), sizeof(MIDIOUTCAPSW),
 						sizeof(MIDIOUTCAPS2A), sizeof(MIDIOUTCAPS2W));
-		MessageBox(NULL, TempStr, "MIDI Drv. Info", MB_OK);
+		MessageBox(nullptr, TempStr, "MIDI Drv. Info", MB_OK);
 	}
 #endif
 	switch(capsSize)
@@ -543,18 +539,16 @@ struct evbuf_t
 };
 #define EVBUFF_SIZE	512
 
-static struct evbuf_t evbuf[EVBUFF_SIZE];
+static evbuf_t evbuf[EVBUFF_SIZE];
 static UINT  evbwpoint = 0;
 static UINT  evbrpoint = 0;
 static volatile LONG evbcount = 0;
 static UINT evbsysexpoint;
 
-int bmsyn_buf_check(void)
+int bmsyn_buf_check()
 {
-	int retval;
-	
 	EnterCriticalSection(&mim_section);
-	retval = evbcount;
+	const int retval = evbcount;
 	LeaveCriticalSection(&mim_section);
 	
 	return retval;
@@ -567,28 +561,23 @@ static const UINT8 MidiHeader[0x12] =
 
 static void PutBE16(UINT16 Value, FILE* hFile)
 {
-	fputc((Value >>  8) & 0xFF, hFile);
-	fputc((Value >>  0) & 0xFF, hFile);
-	
-	return;
+	fputc(Value >> 8 & 0xFF, hFile);
+	fputc(Value >> 0 & 0xFF, hFile);
 }
 
 static void PutBE32(UINT32 Value, FILE* hFile)
 {
-	fputc((Value >> 24) & 0xFF, hFile);
-	fputc((Value >> 16) & 0xFF, hFile);
-	fputc((Value >>  8) & 0xFF, hFile);
-	fputc((Value >>  0) & 0xFF, hFile);
-	
-	return;
+	fputc(Value >> 24 & 0xFF, hFile);
+	fputc(Value >> 16 & 0xFF, hFile);
+	fputc(Value >>  8 & 0xFF, hFile);
+	fputc(Value >>  0 & 0xFF, hFile);
 }
 
 static void PutMidiDelay(UINT32 Delay, FILE* hFile)
 {
 	UINT8 DataArr[0x05];
-	UINT8 CurPos;
-	
-	CurPos = 0x00;
+
+	UINT8 CurPos = 0x00;
 	do
 	{
 		DataArr[CurPos] = Delay & 0x7F;
@@ -599,8 +588,6 @@ static void PutMidiDelay(UINT32 Delay, FILE* hFile)
 	while(-- CurPos)
 		fputc(0x80 | DataArr[CurPos], hFile);
 	fputc(DataArr[CurPos], hFile);
-	
-	return;
 }
 #endif
 
@@ -608,17 +595,9 @@ static void PutMidiDelay(UINT32 Delay, FILE* hFile)
 
 int bmsyn_play_some_data(FILE* hDebugFile)
 {
-	UINT uDeviceID;
-	UINT uMsg;
 	DWORD dwParam1;
-	DWORD dwParam2;
-	
-	UINT evbpoint;
-	int exlen;
-	unsigned char *sysexbuffer;
-	int played;
-	
-	played = 0;
+
+	int played = 0;
 	if (! bmsyn_buf_check())
 	{
 		played = ~0;
@@ -628,29 +607,28 @@ int bmsyn_play_some_data(FILE* hDebugFile)
 	do
 	{
 		EnterCriticalSection(&mim_section);
-		evbpoint = evbrpoint;
+		const UINT evbpoint = evbrpoint;
 		if (++evbrpoint >= EVBUFF_SIZE)
 			evbrpoint -= EVBUFF_SIZE;
-		
-		uDeviceID = evbuf[evbpoint].uDeviceID;
-		uMsg = evbuf[evbpoint].uMsg;
-		dwParam1 = (DWORD)evbuf[evbpoint].dwParam1;
-		dwParam2 = (DWORD)evbuf[evbpoint].dwParam2;
-		exlen = evbuf[evbpoint].exlen;
-		sysexbuffer = evbuf[evbpoint].sysexbuffer;
+
+		const UINT uMsg = evbuf[evbpoint].uMsg;
+		dwParam1 = evbuf[evbpoint].dwParam1;
+		int exlen = evbuf[evbpoint].exlen;
+		unsigned char* sysexbuffer = evbuf[evbpoint].sysexbuffer;
 		
 		LeaveCriticalSection(&mim_section);
 		switch (uMsg)
 		{
+			default: break;
 		case MODM_DATA:
-			if (hDebugFile != NULL)
+			if (hDebugFile != nullptr)
 				fprintf(hDebugFile, "Short MIDI Event: %02X %02X %02X\n",
 						GET_BYTE(dwParam1,  0), GET_BYTE(dwParam1,  8), GET_BYTE(dwParam1, 16));
 			
 			// C0/D0 has 1 parameter, all others 2 ones
-			exlen = ((dwParam1 & 0xE0) == 0xC0) ? 2 : 3;
+			exlen = (dwParam1 & 0xE0) == 0xC0 ? 2 : 3;
 #ifdef DEBUG_LOG_MID_DATA
-			if (hLogMid != NULL)
+			if (hLogMid != nullptr)
 			{
 				PutMidiDelay(MidLogDelay, hLogMid);
 				MidLogDelay = 0;
@@ -662,14 +640,14 @@ int bmsyn_play_some_data(FILE* hDebugFile)
 							 GET_BYTE(dwParam1, 16));	// 0xFF0000
 			break;
 		case MODM_LONGDATA:
-			if (hDebugFile != NULL)
+			if (hDebugFile != nullptr)
 				fprintf(hDebugFile, "Long MIDI Event: [size %02X] %02X %02X %02X ...\n",
 						exlen, sysexbuffer[0], sysexbuffer[1], sysexbuffer[2]);
 #ifdef DEBUG
 			FILE* logfile;
 			
 			logfile = fopen("D:\\dbglog2.log", "at");
-			if(logfile!=NULL)
+			if(logfile!=nullptr)
 			{
 				for (int i = 0; i < exlen; i++)
 					fprintf(logfile,"%x ", sysexbuffer[i]);
@@ -679,7 +657,7 @@ int bmsyn_play_some_data(FILE* hDebugFile)
 #endif
 			
 #ifdef DEBUG_LOG_MID_DATA
-			if (hLogMid != NULL)
+			if (hLogMid != nullptr)
 			{
 				PutMidiDelay(MidLogDelay, hLogMid);
 				MidLogDelay = 0;
@@ -693,7 +671,7 @@ int bmsyn_play_some_data(FILE* hDebugFile)
 			free(sysexbuffer);
 			break;
 		}
-	} while(InterlockedDecrement((LONG*)&evbcount));
+	} while(InterlockedDecrement(&evbcount));
 	
 	return played;
 }
@@ -701,23 +679,22 @@ int bmsyn_play_some_data(FILE* hDebugFile)
 LSTATUS GetRegDataInt(HKEY hKeyCU, HKEY hKeyLM, LPCTSTR lpValueName, DWORD* lpData)
 {
 	DWORD dwSize;
-	LSTATUS lResult;
-	
-	lResult = -1;
-	if (hKeyCU != NULL)
+
+	LSTATUS lResult = -1;
+	if (hKeyCU != nullptr)
 	{
 		// read from HKEY_CURRENT_USER
 		dwSize = sizeof(DWORD);
-		lResult = RegQueryValueEx(hKeyCU, lpValueName, NULL, NULL, (LPBYTE)lpData, &dwSize);
+		lResult = RegQueryValueEx(hKeyCU, lpValueName, nullptr, nullptr, (LPBYTE)lpData, &dwSize);
 		if (lResult == ERROR_SUCCESS)
 			return ERROR_SUCCESS;
 	}
 	
-	if (hKeyLM != NULL)
+	if (hKeyLM != nullptr)
 	{
 		// read from HKEY_LOCAL_MACHINE
 		dwSize = sizeof(DWORD);	// just to be sure
-		lResult = RegQueryValueEx(hKeyLM, lpValueName, NULL, NULL, (LPBYTE)lpData, &dwSize);
+		lResult = RegQueryValueEx(hKeyLM, lpValueName, nullptr, nullptr, (LPBYTE)lpData, &dwSize);
 		if (lResult == ERROR_SUCCESS)
 			return ERROR_SUCCESS;
 	}
@@ -729,131 +706,118 @@ LSTATUS GetRegDataInt(HKEY hKeyCU, HKEY hKeyLM, LPCTSTR lpValueName, DWORD* lpDa
 LSTATUS GetRegDataStr(HKEY hKeyCU, HKEY hKeyLM, LPCTSTR lpValueName, DWORD StrSize, void* lpData, DWORD* FinalStrSize)
 {
 	DWORD dwSize;
-	LSTATUS lResult;
-	
-	lResult = -1;
-	if (hKeyCU != NULL)
+
+	LSTATUS lResult = -1;
+	if (hKeyCU != nullptr)
 	{
 		// read from HKEY_CURRENT_USER
 		dwSize = StrSize * sizeof(TCHAR);
-		lResult = RegQueryValueEx(hKeyCU, lpValueName, NULL, NULL, (LPBYTE)lpData, &dwSize);
+		lResult = RegQueryValueEx(hKeyCU, lpValueName, nullptr, nullptr, (LPBYTE)lpData, &dwSize);
 		if (lResult == ERROR_SUCCESS)
 		{
-			if (FinalStrSize != NULL)
+			if (FinalStrSize != nullptr)
 				*FinalStrSize = dwSize;
 			return ERROR_SUCCESS;
 		}
 	}
 	
-	if (hKeyLM != NULL)
+	if (hKeyLM != nullptr)
 	{
 		// read from HKEY_LOCAL_MACHINE
 		dwSize = StrSize * sizeof(TCHAR);	// just to be sure
-		lResult = RegQueryValueEx(hKeyLM, lpValueName, NULL, NULL, (LPBYTE)lpData, &dwSize);
+		lResult = RegQueryValueEx(hKeyLM, lpValueName, nullptr, nullptr, (LPBYTE)lpData, &dwSize);
 		if (lResult == ERROR_SUCCESS)
 		{
-			if (FinalStrSize != NULL)
+			if (FinalStrSize != nullptr)
 				*FinalStrSize = dwSize;
 			return ERROR_SUCCESS;
 		}
 	}
 	
-	_tccpy((TCHAR*)lpData, _T(""));
+	_tccpy(static_cast<TCHAR *>(lpData), _T(""));
 	return lResult;
 }
 
-bool load_settings(void)
+bool load_settings()
 {
 	int config_volume;
 	HKEY hKeyCU;
 	HKEY hKeyLM;
-	LSTATUS lResult;
-	
+
 	// --- Open Registry Keys ---
-	lResult = RegOpenKeyEx(HKEY_CURRENT_USER, _T("Software\\MD MIDI Driver"), 0, KEY_READ, &hKeyCU);
+	LSTATUS lResult = RegOpenKeyEx(HKEY_CURRENT_USER, _T("Software\\MD MIDI Driver"), 0, KEY_READ, &hKeyCU);
 	if (lResult != ERROR_SUCCESS)
-		hKeyCU = NULL;
+		hKeyCU = nullptr;
 	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("Software\\MD MIDI Driver"), 0, KEY_READ, &hKeyLM);
 	if (lResult != ERROR_SUCCESS)
-		hKeyLM = NULL;
-	if (hKeyCU == NULL && hKeyLM == NULL)
+		hKeyLM = nullptr;
+	if (hKeyCU == nullptr && hKeyLM == nullptr)
 		return false;
 	
 	// --- Read Sound-related Values ---
 	// Note: If the function fails, 0 is written to the parameter value.
 	//       Value 0 equals the "default" value, so I don't need to check lResult.
-	lResult = GetRegDataInt(hKeyCU, hKeyLM, _T("Volume"), (DWORD*)&config_volume);
+	GetRegDataInt(hKeyCU, hKeyLM, _T("Volume"), reinterpret_cast<DWORD *>(&config_volume));
 	if (! config_volume)
 		config_volume = 10000;
-	lResult = GetRegDataInt(hKeyCU, hKeyLM, _T("BufNum"), (DWORD*)&dsound_frames);
+	GetRegDataInt(hKeyCU, hKeyLM, _T("BufNum"), reinterpret_cast<DWORD *>(&dsound_frames));
 	if (! dsound_frames)
 		dsound_frames = FRAMES_DSOUND;
-	lResult = GetRegDataInt(hKeyCU, hKeyLM, _T("XBufNum"), (DWORD*)&xaudio2_frames);
+	GetRegDataInt(hKeyCU, hKeyLM, _T("XBufNum"), reinterpret_cast<DWORD *>(&xaudio2_frames));
 	if (! xaudio2_frames)
 		xaudio2_frames = FRAMES_XAUDIO;
-	lResult = GetRegDataInt(hKeyCU, hKeyLM, _T("BufSmpls"), (DWORD*)&smpls_per_frame);
+	GetRegDataInt(hKeyCU, hKeyLM, _T("BufSmpls"), reinterpret_cast<DWORD *>(&smpls_per_frame));
 	if (! smpls_per_frame)
 		smpls_per_frame = 0;
-	lResult = GetRegDataInt(hKeyCU, hKeyLM, _T("SampleRate"), (DWORD*)&sample_rate);
+	GetRegDataInt(hKeyCU, hKeyLM, _T("SampleRate"), reinterpret_cast<DWORD *>(&sample_rate));
 	if (! sample_rate)
 		sample_rate = SAMPLE_RATE_DEFAULT;
-	lResult = GetRegDataInt(hKeyCU, hKeyLM, _T("SoundAPIDisable"), (DWORD*)&SndAPIDisable);
+	GetRegDataInt(hKeyCU, hKeyLM, _T("SoundAPIDisable"), reinterpret_cast<DWORD *>(&SndAPIDisable));
 	if (! SndAPIDisable)
 		SndAPIDisable = 0x00;
 	
 	// -- Read Emulation-related Values ---
 	// Note: If the function fails, "" is copied to the parameter string.
 	//       Since this is the default value here, I can ignore lResult here.
-	lResult = GetRegDataStr(hKeyCU, hKeyLM, _T("GYBPath"), MAX_PATH, GYBPath, NULL);
-	lResult = GetRegDataStr(hKeyCU, hKeyLM, _T("PSGPath"), MAX_PATH, PSGPath, NULL);
-	lResult = GetRegDataStr(hKeyCU, hKeyLM, _T("MappingPath"), MAX_PATH, MapPath, NULL);
-	lResult = GetRegDataStr(hKeyCU, hKeyLM, _T("DACPath"), MAX_PATH, DACPath, NULL);
+	GetRegDataStr(hKeyCU, hKeyLM, _T("GYBPath"), MAX_PATH, GYBPath, nullptr);
+	GetRegDataStr(hKeyCU, hKeyLM, _T("PSGPath"), MAX_PATH, PSGPath, nullptr);
+	GetRegDataStr(hKeyCU, hKeyLM, _T("MappingPath"), MAX_PATH, MapPath, nullptr);
+	GetRegDataStr(hKeyCU, hKeyLM, _T("DACPath"), MAX_PATH, DACPath, nullptr);
 #ifdef DEBUG_LOG_MSGS
-	lResult = GetRegDataStr(hKeyCU, hKeyLM, _T("LogFile"), MAX_PATH, LogPath, NULL);
+	GetRegDataStr(hKeyCU, hKeyLM, _T("LogFile"), MAX_PATH, LogPath, nullptr);
 #endif
 #ifdef DEBUG_LOG_MID_DATA
-	lResult = GetRegDataStr(hKeyCU, hKeyLM, _T("MidLogFile"), MAX_PATH, MidLogPath, NULL);
+	GetRegDataStr(hKeyCU, hKeyLM, _T("MidLogFile"), MAX_PATH, MidLogPath, nullptr);
 #endif
 	
 	// --- Close Registry Keys ---
-	if (hKeyLM != NULL)
+	if (hKeyLM != nullptr)
 		lResult = RegCloseKey(hKeyLM);
-	if (hKeyCU != NULL)
+	if (hKeyCU != nullptr)
 		lResult = RegCloseKey(hKeyCU);
 	
 	// convert registry volume value into "real" value
-	sound_out_volume_float = (float)config_volume / 10000.0f;
-	sound_out_volume_int = (int)(sound_out_volume_float * (float)0x100 + 0.5f);
+	sound_out_volume_float = static_cast<float>(config_volume) / 10000.0f;
+	sound_out_volume_int = static_cast<int>(sound_out_volume_float * static_cast<float>(0x100) + 0.5f);
 	
 	return true;
 }
 
-BOOL IsVistaOrNewer(void)
+#include <VersionHelpers.h>
+
+BOOL IsVistaOrNewer()
 {
-	OSVERSIONINFOEX osvi;
-	BOOL bOsVersionInfoEx;
-	
-	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
-	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);
-	if (bOsVersionInfoEx == FALSE)
-		return FALSE;
-	
-	if (VER_PLATFORM_WIN32_NT == osvi.dwPlatformId && osvi.dwMajorVersion >= 6)
-		return TRUE;
-	
-	return FALSE;
+	return IsWindowsVistaOrGreater();
 }
 
 static UINT8 LoadSoundDriver(unsigned int* FrameCnt, unsigned int* SmplPFrame, FILE* hDebugFile)
 {
 	const char* err;
-	unsigned int FrmCnt;
-	unsigned int FrmSmpls;
+	unsigned int FrmSmpls = 0;
 	
 	sound_out_float = IsVistaOrNewer() ? true : false;
 	
-	if (hDebugFile != NULL)
+	if (hDebugFile != nullptr)
 		fprintd(hDebugFile, "Sound driver init:\n");
 	
 	if (smpls_per_frame > 0)
@@ -870,107 +834,105 @@ static UINT8 LoadSoundDriver(unsigned int* FrameCnt, unsigned int* SmplPFrame, F
 	
 #if _MSC_VER >= 1300
 	// --- XAudio2 ---
-	if (hDebugFile != NULL)
+	if (hDebugFile != nullptr)
 		fprintd(hDebugFile, "\tXAudio2 ");
 	if (! (SndAPIDisable & 0x04))
 	{
-		FrmCnt = xaudio2_frames;
+		const unsigned int FrmCnt = xaudio2_frames;
 		
 		sound_driver = create_sound_out_xaudio2();
 		err = sound_driver->open(g_msgwnd->get_hwnd(), sample_rate, 2, sound_out_float, FrmSmpls, FrmCnt);
-		if (err == NULL)
+		if (err == nullptr)
 		{
 			*SmplPFrame = FrmSmpls;
 			*FrameCnt = FrmCnt;
-			if (hDebugFile != NULL)
+			if (hDebugFile != nullptr)
 				fprintd(hDebugFile, "Successful\n");
 			return SND_DRV_XAUDIO;
 		}
 		delete sound_driver;
-		if (hDebugFile != NULL)
+		if (hDebugFile != nullptr)
 			fprintd(hDebugFile, "failed\n");
 	}
 	else
 	{
-		if (hDebugFile != NULL)
+		if (hDebugFile != nullptr)
 			fprintd(hDebugFile, "disabled\n");
 	}
 	// --- XAudio2 End ---
 #endif	// _MSC_VER >= 13000
 	
 	// --- DSound ---
-	if (hDebugFile != NULL)
+	if (hDebugFile != nullptr)
 		fprintd(hDebugFile, "\tDSound ");
 	if (! (SndAPIDisable & 0x02))
 	{
-		FrmCnt = dsound_frames;
+		const unsigned int FrmCnt = dsound_frames;
 		
 		sound_driver = create_sound_out_ds();
 		err = sound_driver->open(g_msgwnd->get_hwnd(), sample_rate, 2, sound_out_float, FrmSmpls, FrmCnt);
-		if (err == NULL)
+		if (err == nullptr)
 		{
 			*SmplPFrame = FrmSmpls;
 			*FrameCnt = FrmCnt;
-			if (hDebugFile != NULL)
+			if (hDebugFile != nullptr)
 				fprintd(hDebugFile, "Successful\n");
 			return SND_DRV_DSOUND;
 		}
 		delete sound_driver;
-		if (hDebugFile != NULL)
+		if (hDebugFile != nullptr)
 			fprintd(hDebugFile, "failed\n");
 	}
 	else
 	{
-		if (hDebugFile != NULL)
+		if (hDebugFile != nullptr)
 			fprintd(hDebugFile, "disabled\n");
 	}
 	// --- DSound End ---
 	
 	// --- WinMM ---
-	if (hDebugFile != NULL)
+	if (hDebugFile != nullptr)
 		fprintd(hDebugFile, "\tWinMM ");
 	if (! (SndAPIDisable & 0x01))
 	{
-		FrmCnt = dsound_frames;
+		const unsigned int FrmCnt = dsound_frames;
 		
 		sound_driver = create_sound_out_winmm();
 		err = sound_driver->open(g_msgwnd->get_hwnd(), sample_rate, 2, sound_out_float, FrmSmpls, FrmCnt);
-		if (err == NULL)
+		if (err == nullptr)
 		{
 			*SmplPFrame = FrmSmpls;
 			*FrameCnt = FrmCnt;
-			if (hDebugFile != NULL)
+			if (hDebugFile != nullptr)
 				fprintd(hDebugFile, "Successful\n");
 			return SND_DRV_WINMM;
 		}
 		delete sound_driver;
-		if (hDebugFile != NULL)
+		if (hDebugFile != nullptr)
 			fprintd(hDebugFile, "failed\n");
 	}
 	else
 	{
-		if (hDebugFile != NULL)
+		if (hDebugFile != nullptr)
 			fprintd(hDebugFile, "disabled\n");
 	}
 	// --- WinMM End ---
 	
-	sound_driver = NULL;
+	sound_driver = nullptr;
 	return SND_DRV_FAIL;
 }
 
 unsigned __stdcall threadfunc(LPVOID lpV)
 {
-	unsigned i;
 	unsigned int FrameCnt;
 	UINT8 RetVal;
 	int opend = 0;
-	INT32 sound_buffer[SAMPLES_PER_FRAME_MAX];
 	INT32 sound_buffer_extra[SAMPLES_PER_FRAME_MAX];
-	float* sound_buffer_f = (float*)sound_buffer_extra;
-	INT16* sound_buffer_s = (INT16*)sound_buffer_extra;
+	const auto sound_buffer_f = reinterpret_cast<float *>(sound_buffer_extra);
+	const auto sound_buffer_s = reinterpret_cast<INT16 *>(sound_buffer_extra);
 	unsigned SleepTime;
 	unsigned int SmplPFrame;
-	FILE* hFile = NULL;
+	FILE* hFile = nullptr;
 	
 	stop_thread = 0;
 	if (! load_settings())
@@ -979,18 +941,18 @@ unsigned __stdcall threadfunc(LPVOID lpV)
 #ifdef DEBUG_LOG_MSGS
 	//hFile = fopen(LOGFILE_PATH_LOG, "at");
 	hFile = _tfopen(LogPath, _T("at"));
-	if (hFile != NULL)
+	if (hFile != nullptr)
 		fprintf(hFile, "Thread opened\n");
 	/*{
 		TCHAR msgStr[MAX_PATH];
 		_stprintf_s(msgStr, _T("Logfile Handle: %p (%s)"), hFile, LogPath);
-		MessageBox(NULL, msgStr, _T("MD Midi Driver"), MB_ICONINFORMATION);
+		MessageBox(nullptr, msgStr, _T("MD Midi Driver"), MB_ICONINFORMATION);
 	}*/
 #else
-	hFile = NULL;
+	hFile = nullptr;
 #endif
 	
-	if (sound_driver == NULL)
+	if (sound_driver == nullptr)
 	{
 		sound_drv_mode = LoadSoundDriver(&FrameCnt, &SmplPFrame, hFile);
 		if (sound_drv_mode == SND_DRV_FAIL)
@@ -998,7 +960,7 @@ unsigned __stdcall threadfunc(LPVOID lpV)
 		SmplPFrame &= ~0x01;	// must be divisible by 2 to work correctly
 	}
 	
-	if (hFile != NULL)
+	if (hFile != nullptr)
 		fprintf(hFile, "Initializing emulation (sample rate %u) ...\n", sample_rate);
 	RetVal = InitChips(0x01, sample_rate);
 	if (RetVal)
@@ -1007,32 +969,32 @@ unsigned __stdcall threadfunc(LPVOID lpV)
 		goto ThreadExit;
 	}
 	
-	if (hFile != NULL)
+	if (hFile != nullptr)
 		fprintf(hFile, "Initializing sound engine ...\n");
 	InitEngine();
-	if (hFile != NULL)
+	if (hFile != nullptr)
 		fprintf(hFile, "Loading sound engine files ...\n");
 	if (! LoadDriverData(hFile))
 	{
-		if (hFile != NULL)
+		if (hFile != nullptr)
 			fprintd(hFile, "Failed to load Driver Data.\n");
 		goto ThreadExit;
 	}
 	
-	if (hFile != NULL)
+	if (hFile != nullptr)
 		fprintd(hFile, "Doing initial buffer fill ...\n"), fflush(hFile);
 	if (sound_out_float)
 	{
-		for (i = 0; i < SmplPFrame; i ++)
+		for (unsigned i = 0; i < SmplPFrame; i ++)
 			sound_buffer_f[i] = 0.0f;
-		for (i = 0; i < FrameCnt; i ++)
+		for (unsigned i = 0; i < FrameCnt; i ++)
 			sound_driver->write_frame(sound_buffer_f, SmplPFrame, true);
 	}
 	else
 	{
-		for (i = 0; i < SmplPFrame; i ++)
+		for (unsigned i = 0; i < SmplPFrame; i ++)
 			sound_buffer_s[i] = 0;
-		for (i = 0; i < FrameCnt; i ++)
+		for (unsigned i = 0; i < FrameCnt; i ++)
 			sound_driver->write_frame(sound_buffer_s, SmplPFrame, true);
 	}
 	
@@ -1040,14 +1002,14 @@ unsigned __stdcall threadfunc(LPVOID lpV)
 	opend = 1;
 	reset_synth[0] = 1;
 	//reset_synth[1] = 1;
-	if (hFile != NULL)
+	if (hFile != nullptr)
 		fprintd(hFile, "Driver Running.\n"), fflush(hFile);
 	
 #ifdef DEBUG_LOG_MID_DATA
-	if (hLogMid != NULL)
+	if (hLogMid != nullptr)
 	{
 		fseek(hLogMid, 0x0C, SEEK_SET);
-		i = (sample_rate + SmplPFrame/2) / SmplPFrame;
+		const unsigned i = (sample_rate + SmplPFrame/2) / SmplPFrame;
 		PutBE16(i, hLogMid);
 		fseek(hLogMid, 0x00, SEEK_END);
 	}
@@ -1056,10 +1018,11 @@ unsigned __stdcall threadfunc(LPVOID lpV)
 	
 	while(! stop_thread)
 	{
+		INT32 sound_buffer[SAMPLES_PER_FRAME_MAX];
 		if (reset_synth[0] != 0)
 		{
 #ifdef DEBUG_LOG_MSGS
-			if (hFile != NULL)
+			if (hFile != nullptr)
 				fprintd(hFile, "Thread reset\n");
 #endif
 			SentBufCount = 0;
@@ -1091,19 +1054,19 @@ unsigned __stdcall threadfunc(LPVOID lpV)
 		
 		if (sound_out_float)
 		{
-			for (i = 0; i < SmplPFrame; i ++)
+			for (unsigned i = 0; i < SmplPFrame; i ++)
 			{
 				float sample = sound_buffer[i] / 4194304.0f;
 				sample *= sound_out_volume_float;
 				sound_buffer_f[i] = sample;
 			}
 			
-			if (SentBufCount < FrameCnt * 1 && hFile != NULL)
+			if (SentBufCount < FrameCnt * 1 && hFile != nullptr)
 			{
 				fprintd(hFile, "Time %u (slept %u): Write %u Samples (f) ...",
 								GetTickCount(), SleepTime, SmplPFrame);
 				sound_driver->write_frame(sound_buffer_f, SmplPFrame, false);
-				fprintd(hFile, "Done\n", SmplPFrame);
+				fprintd(hFile, "Done\n");
 			}
 			else
 			{
@@ -1112,22 +1075,22 @@ unsigned __stdcall threadfunc(LPVOID lpV)
 		}
 		else
 		{
-			for (i = 0; i < SmplPFrame; i ++)
+			for (unsigned i = 0; i < SmplPFrame; i ++)
 			{
 				int sample = sound_buffer[i];
-				sample = ((sample >> 3) * sound_out_volume_int) >> 12;
+				sample = (sample >> 3) * sound_out_volume_int >> 12;
 				//sample = ((i/(SmplPFrame/8))%2) * 0x0800;		// write test value
-				if ((sample + 0x8000) & 0xFFFF0000)
-					sample = 0x7FFF ^ (sample >> 31);
+				if (sample + 0x8000 & 0xFFFF0000)
+					sample = 0x7FFF ^ sample >> 31;
 				sound_buffer_s[i] = sample;
 			}
 			
-			if (SentBufCount < FrameCnt * 1 && hFile != NULL)
+			if (SentBufCount < FrameCnt * 1 && hFile != nullptr)
 			{
 				fprintd(hFile, "Time %u (slept %u): Write %u Samples (i) ...",
 								GetTickCount(), SleepTime, SmplPFrame);
 				sound_driver->write_frame(sound_buffer_s, SmplPFrame, false);
-				fprintd(hFile, "Done\n", SmplPFrame);
+				fprintd(hFile, "Done\n");
 			}
 			else
 			{
@@ -1136,7 +1099,7 @@ unsigned __stdcall threadfunc(LPVOID lpV)
 		}
 		SentBufCount ++;
 	}
-	if (hFile != NULL)
+	if (hFile != nullptr)
 		fprintd(hFile, "Thread stop requested, sent buffer count: %u\n", SentBufCount);
 	
 	FreeGYBFile();
@@ -1144,30 +1107,30 @@ unsigned __stdcall threadfunc(LPVOID lpV)
 	FreeDACData();
 	
 	DeinitChips();
-	if (hFile != NULL)
+	if (hFile != nullptr)
 		fprintd(hFile, "Chip Deinit finished.\n");
 	
 ThreadExit:
 	stop_thread = 1;
-	if (load_sfevent != NULL)
+	if (load_sfevent != nullptr)
 	{
 		//fprintd(hFile, "Thread exit - event: %p\n", load_sfevent);
 		SetEvent(load_sfevent);
-		if (hFile != NULL)
+		if (hFile != nullptr)
 			fprintd(hFile, "Event passed\n");
 	}
-	if (hFile != NULL)
+	if (hFile != nullptr)
 		fflush(hFile);
 	
-	if (sound_driver != NULL)
+	if (sound_driver != nullptr)
 	{
 		delete sound_driver;
-		sound_driver = NULL;
+		sound_driver = nullptr;
 	}
-	if (hFile != NULL)
+	if (hFile != nullptr)
 		fprintd(hFile, "Sound driver deleted\n");
 #ifdef DEBUG_LOG_MSGS
-	if (hFile != NULL)
+	if (hFile != nullptr)
 	{
 		fprintd(hFile, "Thread closed\n");
 		fclose(hFile);
@@ -1180,15 +1143,13 @@ ThreadExit:
 
 void DoCallback(int driverNum, int clientNum, DWORD msg, DWORD_PTR param1, DWORD_PTR param2)
 {
-	struct Driver_Client *client = &drivers[driverNum].clients[clientNum];
+	const Driver_Client *client = &drivers[driverNum].clients[clientNum];
 	
 	DriverCallback(client->callback, client->flags, drivers[driverNum].hdrvr,
 					msg, client->instance, param1, param2);
-	
-	return;
 }
 
-void DoStartClient(void)
+void DoStartClient()
 {
 	if (modm_closed)
 	{
@@ -1198,7 +1159,7 @@ void DoStartClient(void)
 #ifdef DEBUG_LOG_MSGS
 		//hLogFile = fopen(LOGFILE_PATH_LOG, "at");
 		hLogFile = _tfopen(LogPath, _T("at"));
-		if (hLogFile != NULL)
+		if (hLogFile != nullptr)
 		{
 			fprintf(hLogFile, "DoStartClient Start\n");
 			fclose(hLogFile);
@@ -1207,7 +1168,7 @@ void DoStartClient(void)
 #ifdef DEBUG_LOG_MID_DATA
 		//hLogMid = fopen(LOGFILE_PATH_MID, "wb");
 		hLogMid = _tfopen(MidLogPath, _T("wb"));
-		if (hLogMid != NULL)
+		if (hLogMid != nullptr)
 		{
 			fwrite(MidiHeader, 0x01, sizeof(MidiHeader), hLogMid);
 			PutBE32(-1, hLogMid);
@@ -1218,9 +1179,9 @@ void DoStartClient(void)
 		processPriority = GetPriorityClass(GetCurrentProcess());
 		SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
 		
-		//load_sfevent = CreateEvent(NULL, TRUE, FALSE, TEXT("MDMidLoadedEvent"));
-		load_sfevent = CreateEvent(NULL, FALSE, FALSE, NULL);
-		hCalcThread = (HANDLE)_beginthreadex(NULL, 0, threadfunc, 0, 0, &thrdaddr);
+		//load_sfevent = CreateEvent(nullptr, TRUE, FALSE, TEXT("MDMidLoadedEvent"));
+		load_sfevent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+		hCalcThread = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, threadfunc, nullptr, 0, &thrdaddr));
 		
 		SetPriorityClass(hCalcThread, REALTIME_PRIORITY_CLASS);
 		SetThreadPriority(hCalcThread, THREAD_PRIORITY_TIME_CRITICAL);
@@ -1229,14 +1190,14 @@ void DoStartClient(void)
 		if (result == WAIT_OBJECT_0)
 		{
 			CloseHandle(load_sfevent);
-			load_sfevent = NULL;
+			load_sfevent = nullptr;
 		}
 		modm_closed = 0;
 		
 #ifdef DEBUG_LOG_MSGS
 		//hLogFile = fopen(LOGFILE_PATH_LOG, "at");
 		hLogFile = _tfopen(LogPath, _T("at"));
-		if (hLogFile != NULL)
+		if (hLogFile != nullptr)
 		{
 			fprintf(hLogFile, "DoStartClient OK\n");
 			fclose(hLogFile);
@@ -1245,17 +1206,16 @@ void DoStartClient(void)
 	}
 }
 
-void DoStopClient(void)
+void DoStopClient()
 {
 	if (! modm_closed)
 	{
 		DWORD wait_result;
-		BOOL close_result;
-		
+
 #ifdef DEBUG_LOG_MSGS
 		//hLogFile = fopen(LOGFILE_PATH_LOG, "at");
 		hLogFile = _tfopen(LogPath, _T("at"));
-		if (hLogFile != NULL)
+		if (hLogFile != nullptr)
 		{
 			fprintf(hLogFile, "DoStopClient Start\n");
 			fclose(hLogFile);
@@ -1268,27 +1228,27 @@ void DoStopClient(void)
 			wait_result = WaitForSingleObject(hCalcThread, INFINITE);
 			if (wait_result == WAIT_OBJECT_0)
 			{
-				close_result = CloseHandle(hCalcThread);
-				hCalcThread = NULL;
+				BOOL close_result = CloseHandle(hCalcThread);
+				hCalcThread = nullptr;
 			}
 		}
 		else
 		{
 			// WinMM can deadlock, so I'll use a less safe approach here.
 			// (Under Windows 2000, waveOutClose waits until the modMessage callback is done.)
-			load_sfevent = CreateEvent(NULL, FALSE, FALSE, NULL);
+			load_sfevent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 			wait_result = WaitForSingleObject(load_sfevent, INFINITE);
 			if (wait_result == WAIT_OBJECT_0)
 			{
 				CloseHandle(load_sfevent);
-				load_sfevent = NULL;
+				load_sfevent = nullptr;
 			}
 		}
 		modm_closed = 1;
 		SetPriorityClass(GetCurrentProcess(), processPriority);
 		
 #ifdef DEBUG_LOG_MID_DATA
-		if (hLogMid != NULL)
+		if (hLogMid != nullptr)
 		{
 			PutMidiDelay(MidLogDelay, hLogMid);
 			MidLogDelay = 0;
@@ -1300,13 +1260,13 @@ void DoStopClient(void)
 			fseek(hLogMid, sizeof(MidiHeader), SEEK_SET);
 			PutBE32(wait_result, hLogMid);
 			
-			fclose(hLogMid);	hLogMid = NULL;
+			fclose(hLogMid);	hLogMid = nullptr;
 		}
 #endif
 #ifdef DEBUG_LOG_MSGS
 		//hLogFile = fopen(LOGFILE_PATH_LOG, "at");
 		hLogFile = _tfopen(LogPath, _T("at"));
-		if (hLogFile != NULL)
+		if (hLogFile != nullptr)
 		{
 			fprintf(hLogFile, "DoStopClient OK\n");
 			fclose(hLogFile);
@@ -1314,8 +1274,6 @@ void DoStopClient(void)
 #endif
 	}
 	DeleteCriticalSection(&mim_section);
-	
-	return;
 }
 
 void DoResetClient(UINT uDeviceID)
@@ -1328,11 +1286,9 @@ MOM_DONE callback message for each buffer.
 	*/
 	//reset_synth[!!uDeviceID] = 1;
 	reset_synth[0] = 1;
-	
-	return;
 }
 
-LONG DoOpenClient(struct Driver *driver, UINT uDeviceID, LONG* dwUser, MIDIOPENDESC * desc, DWORD flags)
+LONG DoOpenClient(Driver *driver, UINT uDeviceID, LONG* dwUser, MIDIOPENDESC * desc, DWORD flags)
 {
 /*	For the MODM_OPEN message, dwUser is an output parameter.
 The driver creates the instance identifier and returns it in the address specified as
@@ -1381,7 +1337,7 @@ CALLBACK_WINDOW Indicates dwCallback member of MIDIOPENDESC is a window handle.
 	return MMSYSERR_NOERROR;
 }
 
-LONG DoCloseClient(struct Driver *driver, UINT uDeviceID, LONG dwUser)
+LONG DoCloseClient(Driver *driver, UINT uDeviceID, LONG dwUser)
 {
 /*
 If the client has passed data buffers to the user-mode driver by means of MODM_LONGDATA
@@ -1413,39 +1369,38 @@ STDAPI_(DWORD) modMessage(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR
 	UINT evbpoint;
 	struct Driver *driver = &drivers[uDeviceID];
 	int exlen = 0;
-	unsigned char *sysexbuffer = NULL;
+	unsigned char *sysexbuffer = nullptr;
 	DWORD result = 0;
 	
 	switch (uMsg)
 	{
 	case MODM_OPEN:
-		return DoOpenClient(driver, uDeviceID, reinterpret_cast<LONG*>(dwUser), reinterpret_cast<MIDIOPENDESC*>(dwParam1), static_cast<DWORD>(dwParam2));
+		return DoOpenClient(driver, uDeviceID, reinterpret_cast<LONG*>(dwUser), reinterpret_cast<MIDIOPENDESC*>(dwParam1), dwParam2);
 	case MODM_PREPARE:
 		/*If the driver returns MMSYSERR_NOTSUPPORTED, winmm.dll prepares the buffer for use. For
 most drivers, this behavior is sufficient.*/
-		return MMSYSERR_NOTSUPPORTED;
 	case MODM_UNPREPARE:
 		return MMSYSERR_NOTSUPPORTED;
 	case MODM_GETNUMDEVS:
 		return 0x01;
 	case MODM_GETDEVCAPS:
-		return modGetCaps(uDeviceID, reinterpret_cast<MIDIOUTCAPS*>(dwParam1), static_cast<DWORD>(dwParam2));
+		return modGetCaps(uDeviceID, reinterpret_cast<MIDIOUTCAPS*>(dwParam1), dwParam2);
 	case MODM_LONGDATA:
 		IIMidiHdr = (MIDIHDR *)dwParam1;
 		if (! (IIMidiHdr->dwFlags & MHDR_PREPARED))
 			return MIDIERR_UNPREPARED;
 		IIMidiHdr->dwFlags &= ~MHDR_DONE;
 		IIMidiHdr->dwFlags |= MHDR_INQUEUE;
-		exlen=(int)IIMidiHdr->dwBufferLength;
-		sysexbuffer = (unsigned char *)malloc(exlen * sizeof(char));
-		if (sysexbuffer == NULL)
+		exlen=static_cast<int>(IIMidiHdr->dwBufferLength);
+		sysexbuffer = static_cast<unsigned char *>(malloc(exlen * sizeof(char)));
+		if (sysexbuffer == nullptr)
 			return MMSYSERR_NOMEM;
 		
 		memcpy(sysexbuffer, IIMidiHdr->lpData, exlen);
 #ifdef DEBUG
 		FILE * logfile;
 		logfile = fopen("d:\\dbglog.log","at");
-		if(logfile!=NULL) {
+		if(logfile!=nullptr) {
 			fprintf(logfile,"sysex %d byete\n", exlen);
 			for(int i = 0 ; i < exlen ; i++)
 				fprintf(logfile,"%x ", sysexbuffer[i]);
@@ -1491,7 +1446,7 @@ most drivers, this behavior is sufficient.*/
 		return MMSYSERR_NOERROR;
 	case MODM_SETVOLUME:
 		sound_out_volume_float = LOWORD(dwParam1) / (float)0xFFFF;
-		sound_out_volume_int = (int)(sound_out_volume_float * (float)0x100);
+		sound_out_volume_int = static_cast<int>(sound_out_volume_float * static_cast<float>(0x100));
 		return MMSYSERR_NOERROR;
 	case MODM_RESET:
 		DoResetClient(uDeviceID);
@@ -1520,6 +1475,5 @@ most drivers, this behavior is sufficient.*/
 
 	default:
 		return MMSYSERR_NOERROR;
-		break;
 	}
 }

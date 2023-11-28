@@ -102,8 +102,7 @@ int main(int argc, char* argv[])
 	CloseOPNDriver();*/
 	
 	char FileName[0x100];
-	UINT8 RetVal;
-	
+
 	printf("MD MIDI Player\n--------------\nby Valley Bell\n");
 	printf("\n");
 	printf("File Name:\t");
@@ -130,7 +129,7 @@ int main(int argc, char* argv[])
 	//ShowVGMTag();
 	//PlayVGM();
 	
-	RetVal = InitChips(0x01, 44100);
+	UINT8 RetVal = InitChips(0x01, 44100);
 	
 	InitEngine();
 	//InitMappingData() is already done by InitEngine()
@@ -205,25 +204,19 @@ UINT8 OpenOPNDriver(void)
 void CloseOPNDriver(void)
 {
 	StopStream(false);
-	
-	return;
 }
 
 void CloseOPNDriver_Unload(void)
 {
 	StopStream(true);
-	
-	return;
 }
 
 void OPNAPI OPN_Write(UINT8 ChipID, UINT16 Register, UINT8 Data)
 {
-	UINT8 RegSet;
-	
 	//if (ChipID >= OPN_CHIPS)
 	//	return;
 	
-	if (Register == 0x28 && (Data & 0xF0))
+	if (Register == 0x28 && Data & 0xF0)
 	{
 		// Note On - Resume Stream
 	//	NullSamples = 0;
@@ -232,12 +225,10 @@ void OPNAPI OPN_Write(UINT8 ChipID, UINT16 Register, UINT8 Data)
 	
 	//if (NullSamples == 0xFFFFFFFF)	// if chip is paused, do safe update
 	//	GetChipStream(0x00, ChipID, StreamBufs, 1);
-	
-	RegSet = Register >> 8;
-	ym2612_w(ChipID, 0x00 | (RegSet << 1), Register & 0xFF);
-	ym2612_w(ChipID, 0x01 | (RegSet << 1), Data);
-	
-	return;
+
+	const UINT8 RegSet = Register >> 8;
+	ym2612_w(ChipID, 0x00 | RegSet << 1, Register & 0xFF);
+	ym2612_w(ChipID, 0x01 | RegSet << 1, Data);
 }
 
 void OPNAPI OPN_Mute(UINT8 ChipID, UINT8 MuteMask)
@@ -246,21 +237,16 @@ void OPNAPI OPN_Mute(UINT8 ChipID, UINT8 MuteMask)
 	//	return;
 	
 	ym2612_set_mute_mask(ChipID, MuteMask);
-	
-	return;
 }
 
 static UINT32 GetFileLength(const char* FileName)
 {
-	FILE* hFile;
-	UINT32 FileSize;
-	
-	hFile = fopen(FileName, "rb");
+	FILE* hFile = fopen(FileName, "rb");
 	if (hFile == NULL)
 		return 0xFFFFFFFF;
 	
 	fseek(hFile, 0x00, SEEK_END);
-	FileSize = ftell(hFile);
+	const UINT32 FileSize = ftell(hFile);
 	
 	fclose(hFile);
 	
@@ -271,18 +257,15 @@ static UINT32 GetFileLength(const char* FileName)
 #define FCC_MIDT	0x6B72544D		// 'MTrk'
 static bool OpenVGMFile(const char* FileName)
 {
-	FILE* hFile;
 	UINT32 FileSize;
 	UINT32 fccHeader;
-	UINT32 CurPos;
-	UINT8 TempByt;
 	//UINT16 TempSht;
 	UINT32 TempLng;
 	UINT8* TempOp;
 	
 	FileSize = GetFileLength(FileName);
 	
-	hFile = fopen(FileName, "rb");
+	FILE* hFile = fopen(FileName, "rb");
 	if (hFile == NULL)
 		return false;
 	
@@ -314,7 +297,7 @@ static bool OpenVGMFile(const char* FileName)
 	hFile = NULL;
 	
 ReReadMIDIHead:
-	CurPos = 0x00;
+	UINT32 CurPos = 0x00;
 	memcpy(&TempLng, &VGMData[CurPos + 0x04], 0x04);
 	SwapBytes(&TempLng, 0x04);
 	CurPos += 0x08;
@@ -333,7 +316,7 @@ ReReadMIDIHead:
 	
 	if (MIDIHead.shtFormat == 0x01 && MIDIHead.shtTracks > 0x01)
 	{
-		TempByt = MIDI1to0(VGMDataLen, VGMData, &FileSize, &TempOp);
+		const UINT8 TempByt = MIDI1to0(VGMDataLen, VGMData, &FileSize, &TempOp);
 		free(VGMData);
 		if (TempByt)
 		{
@@ -377,50 +360,36 @@ OpenErr:
 static void SwapBytes(void* Buffer, UINT32 Bytes)
 {
 	// Used to convert Little Endian to Big Endian
-	char* TempBuf;
-	UINT32 PosA;
-	UINT32 PosB;
-	char TempByt;
-	
-	TempBuf = (char*)Buffer;
-	PosA = 0x00;
-	PosB = Bytes;
+
+	char* TempBuf = (char *)Buffer;
+	UINT32 PosA = 0x00;
+	UINT32 PosB = Bytes;
 	do
 	{
 		PosB --;
-		TempByt = TempBuf[PosB];
+		const char TempByt = TempBuf[PosB];
 		TempBuf[PosB] = TempBuf[PosA];
 		TempBuf[PosA] = TempByt;
 		PosA ++;
 	} while(PosA < PosB);
-	
-	return;
 }
 
 static __inline INT32 SampleVGM2Playback(INT32 SampleVal)
 {
-	signed __int64 TempQud;
-	MIDI_TEMPO* TempTempo;
-	UINT32 TickCount;
-	
-	TempTempo = MidTempo + CurTempo;
-	
-	TickCount = SampleVal - TempTempo->BaseTick;
-	TempQud = (signed __int64)TickCount * SampleRate * TempTempo->Tempo / 1000000 / VGMSampleRate;
+	const MIDI_TEMPO* TempTempo = MidTempo + CurTempo;
+
+	const UINT32 TickCount = SampleVal - TempTempo->BaseTick;
+	const signed __int64 TempQud = (signed __int64)TickCount * SampleRate * TempTempo->Tempo / 1000000 / VGMSampleRate;
 	
 	return TempTempo->SmplTime + (INT32)TempQud;
 }
 
 static __inline INT32 SamplePlayback2VGM(INT32 SampleVal)
 {
-	signed __int64 TempQud;
-	UINT32 TickCount;
-	MIDI_TEMPO* TempTempo;
-	
-	TempTempo = MidTempo + CurTempo;
-	
-	TickCount = SampleVal - TempTempo->SmplTime;
-	TempQud = (signed __int64)TickCount * VGMSampleRate * 1000000 / TempTempo->Tempo / SampleRate;	
+	const MIDI_TEMPO* TempTempo = MidTempo + CurTempo;
+
+	const UINT32 TickCount = SampleVal - TempTempo->SmplTime;
+	const signed __int64 TempQud = (signed __int64)TickCount * VGMSampleRate * 1000000 / TempTempo->Tempo / SampleRate;	
 	
 	return TempTempo->BaseTick + (INT32)TempQud;
 }
@@ -470,20 +439,15 @@ void InterpretFile(UINT32 SampleCount)
 	}*/
 	
 	//Interpreting = false;
-	
-	return;
 }
 
 static UINT32 GetMIDIDelay(UINT32* DelayLen)
 {
-	UINT32 CurPos;
-	UINT32 DelayVal;
-	
-	CurPos = VGMPos;
-	DelayVal = 0x00;
+	UINT32 CurPos = VGMPos;
+	UINT32 DelayVal = 0x00;
 	do
 	{
-		DelayVal = (DelayVal << 7) | (VGMData[CurPos] & 0x7F);
+		DelayVal = DelayVal << 7 | VGMData[CurPos] & 0x7F;
 	} while(VGMData[CurPos ++] & 0x80);
 	
 	if (DelayVal > 0x01000000)
@@ -503,7 +467,6 @@ static void InterpretMIDI(UINT32* SampleCount)
 {
 	INT32 SmplPlayed;
 	UINT8 Command;
-	UINT8 Channel;
 	//UINT8 TempByt;
 	//UINT16 TempSht;
 	UINT32 TempLng;
@@ -511,7 +474,6 @@ static void InterpretMIDI(UINT32* SampleCount)
 	//float SmplDivdr;
 	UINT32 DataLen;
 	//INT32 PitchVal;
-	bool FileEnd;
 	bool LoopBack;
 	MIDI_TEMPO* TempTempo;
 	char TempStr[0x10];
@@ -523,7 +485,7 @@ static void InterpretMIDI(UINT32* SampleCount)
 		//TempLng = VGMPos;
 		SmplPlayed = VGMSmplPos;
 		VGMPos = VGMHead.lngDataOffset;
-		FileEnd = false;
+		bool FileEnd = false;
 		TempoCount = 0x01;
 		
 		TempTempo = (MIDI_TEMPO*)TempStr;	// Used instead of an extra buffer
@@ -540,7 +502,7 @@ static void InterpretMIDI(UINT32* SampleCount)
 				VGMPos ++;
 			else
 				Command = LastMidCmd;
-			Channel = Command & 0x0F;
+			UINT8 Channel = Command & 0x0F;
 			
 			switch(Command & 0xF0)
 			{
@@ -732,15 +694,11 @@ static void InterpretMIDI(UINT32* SampleCount)
 		if (VGMEnd)
 			break;
 	}
-	
-	return;
 }
 
 INLINE INT16 Limit2Short(INT32 Value)
 {
-	INT32 NewValue;
-	
-	NewValue = Value;
+	INT32 NewValue = Value;
 	if (NewValue < -0x8000)
 		NewValue = -0x8000;
 	if (NewValue > 0x7FFF)
@@ -751,8 +709,6 @@ INLINE INT16 Limit2Short(INT32 Value)
 
 void FillBuffer(WAVE_16BS* Buffer, UINT32 BufferSize)
 {
-	UINT32 CurSmpl;
-
 	InterpretFile(BufferSize);
 	if (Buffer == NULL)
 	{
@@ -761,11 +717,9 @@ void FillBuffer(WAVE_16BS* Buffer, UINT32 BufferSize)
 	}
 	FillBuffer32(TempSmplBuffer, BufferSize);
 
-	for (CurSmpl = 0x00; CurSmpl < BufferSize; CurSmpl ++)
+	for (UINT32 CurSmpl = 0x00; CurSmpl < BufferSize; CurSmpl ++)
 	{
 		Buffer[CurSmpl].Left = Limit2Short(TempSmplBuffer[CurSmpl].Left >> 7);
 		Buffer[CurSmpl].Right = Limit2Short(TempSmplBuffer[CurSmpl].Right >> 7);
 	}
-
-	return;
 }

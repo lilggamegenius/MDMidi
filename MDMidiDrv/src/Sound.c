@@ -6,12 +6,14 @@
 #include <assert.h>
 #include <windows.h>
 
-#include "chips/mamedef.h"
-#include "stdbool.h"
-#include "Structs.h"
+#include "SoundEngine/chips/mamedef.h"
+#include "SoundEngine/Structs.h"
 #include "Sound.h"
-#include "chips/2612intf.h"
-#include "chips/sn764intf.h"
+
+#include <stdbool.h>
+
+#include "SoundEngine/chips/2612intf.h"
+#include "SoundEngine/chips/sn764intf.h"
 
 typedef struct chip_audio_attributes
 {

@@ -10,8 +10,8 @@
 
 #include "chips/mamedef.h"
 #include "Stream.h"
-#include "Sound.h"
-#include "Loader.h"
+#include "../../MDMidiDrv/src/Sound.h"
+#include "SoundEngine/Loader.h"
 #include "chips/2612intf.h"
 
 
@@ -24,9 +24,6 @@ void InterpretFile(UINT32 SampleCount);
 
 static void SwapBytes(void* Buffer, UINT32 Bytes);
 UINT8 MIDI1to0(UINT32 SrcLen, UINT8* SrcData, UINT32* RetDstLen, UINT8** RetDstData);
-
-void InitEngine(void);	// from MainEngine.c
-void StartEngine(void);
 
 typedef struct vgm_file_header
 {
@@ -112,11 +109,11 @@ int main(int argc, char* argv[])
 	printf("File Name:\t");
 	if (argc <= 0x01)
 	{
-		gets(FileName);
+		gets_s(FileName, sizeof FileName);
 	}
 	else
 	{
-		strcpy(FileName, argv[0x01]);
+		strcpy_s(FileName, sizeof FileName, argv[0x01]);
 		printf("%s\n", FileName);
 	}
 	if (! strlen(FileName))

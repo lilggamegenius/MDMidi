@@ -12,8 +12,8 @@
 #include <mmsystem.h>
 #include <dsound.h>
 #include <mmreg.h>
-#include <assert.h>
-#include <math.h>
+#include <cassert>
+#include <cmath>
 #include <vector>
 
 #ifdef HAVE_KS_HEADERS
@@ -27,10 +27,10 @@
 
 class critical_section {
 private:
-	CRITICAL_SECTION sec;
+	CRITICAL_SECTION sec{};
 public:
-	void enter() throw() {EnterCriticalSection(&sec);}
-	void leave() throw() {LeaveCriticalSection(&sec);}
+	void enter() noexcept {EnterCriticalSection(&sec);}
+	void leave() noexcept {LeaveCriticalSection(&sec);}
 	critical_section() {InitializeCriticalSection(&sec);}
 	~critical_section() {DeleteCriticalSection(&sec);}
 private:

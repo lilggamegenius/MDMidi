@@ -1,8 +1,6 @@
-#ifndef __STRUCTS_H__
-#define __STRUCTS_H__
+#pragma once
 
-#include "stdtype.h"
-#include "2612_structs.h"
+#include "../../MDMidiDrv/src/2612_structs.h"
 
 /*typedef struct
 {
@@ -69,4 +67,3 @@ extern DAC_TABLE DACMasterPlaylist[0x80];
 extern UINT32 DAC_BaseRate;
 extern float DAC_RateDiv;
 
-#endif	// __STRUCTS_H__

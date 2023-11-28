@@ -5,15 +5,15 @@
 
 #include <stdio.h>
 #include <malloc.h>
-#include <memory.h>
 #include <string.h>
 #include <stdlib.h>
 #include <tchar.h>
 #include <windows.h>
-#include "stdtype.h"
-#include "Structs.h"
+
+#include "SoundEngine/Structs.h"
 
 #include "2612_reader.h"
+#include "SoundEngine/Loader.h"
 
 static const UINT8 SIG_GYB[2] = {26, 12};
 static const char* SIG_MAP = "MAPPINGS";
@@ -81,7 +81,7 @@ UINT8 LoadGYBFile(const TCHAR* FileName)
 		return 0xFF;
 	
 	fread(&TempSht, 0x02, 0x01, hFile);
-	if (memcmp(&TempSht, SIG_GYB, 0x02))
+	if (memcmp(&TempSht, SIG_GYB, 0x02) != 0)
 	{
 		fclose(hFile);
 		return 0x80;	// invalid GYB file

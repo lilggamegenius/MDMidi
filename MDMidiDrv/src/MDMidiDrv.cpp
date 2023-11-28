@@ -29,6 +29,8 @@ void _endthreadex( unsigned retval );
 #include <Shlwapi.h>
 #include <mmreg.h>	// for MM_MSFT_WDMAUDIO_MIDIOUT
 
+#include  "MDMidDrv.h"
+
 #if _MSC_VER < 1300
 // from WinNT.h
 #define KEY_WOW64_32KEY         (0x0200)
@@ -96,12 +98,9 @@ typedef struct tagMIDIOUTCAPS2W {
 
 extern "C"
 {
-#include "SoundEngine/stdtype.h"
 #include "SoundEngine/Loader.h"
 #include "SoundEngine/Sound.h"
 
-void InitEngine(void);	// from MainEngine.c
-void StartEngine(void);
 void DoShortMidiEvent(UINT8 Command, UINT8 Value1, UINT8 Value2);
 void DoLongMidiEvent(UINT8 Command, UINT8 Value, UINT32 DataLen, UINT8* Data);
 }
@@ -200,7 +199,7 @@ static FILE* hLogFile = NULL;
 static UINT32 SentBufCount;
 
 
-bool load_settings(void);
+MDMidiDrv_EXPORT bool load_settings(void);
 static void DoStopClient(void);
 
 class message_window

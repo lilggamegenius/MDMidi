@@ -1,20 +1,6 @@
-typedef struct
-{
-	char* Name;
-	UINT8 Reg[0x20];
-} GYB_INSTRUMENT;
-typedef struct
-{
-	UINT8 InsCount;
-	UINT8 InsMap[0x80];
-	GYB_INSTRUMENT* InsData;
-} GYB_INS_BANK;
-typedef struct
-{
-	UINT8 FileVer;
-	// Bank 00 - Melody, Bank 01 - Drums
-	GYB_INS_BANK Bank[2];
-} GYB_FILE;
+#pragma once
+
+#include "2612_structs.h"
 
 /*typedef struct
 {
@@ -71,7 +57,7 @@ typedef struct
 } DRUM_MAPPING;
 
 
-extern GYB_FILE GYBData;
+extern GYB_FILE_V3 GYBData;
 //extern DAC_MAP_FILE DACMapData;
 extern PSG_ENV_FILE PSGEnvData;
 extern DRUM_MAPPING DrumMapping;
@@ -80,3 +66,4 @@ extern DAC_SAMPLE DACSmpls[0x80];			// 0x80 different samples are maximum
 extern DAC_TABLE DACMasterPlaylist[0x80];
 extern UINT32 DAC_BaseRate;
 extern float DAC_RateDiv;
+

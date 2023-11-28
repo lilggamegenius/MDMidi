@@ -1,7 +1,4 @@
-#ifndef __2612_STRUCTS_H__
-#define __2612_STRUCTS_H__
-
-#include "stdtype.h"
+#pragma once
 
 // Note: The various xxAlloc variables contain the number of actually allocated entries.
 //       This allows for fewer reallocs.
@@ -78,5 +75,3 @@ typedef struct _gyb_file_v3
 
 #define GYBBANK_MELODY	0x00
 #define GYBBANK_DRUM	0x01
-
-#endif	// __2612_STRUCTS_H__

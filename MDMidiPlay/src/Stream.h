@@ -1,7 +1,5 @@
 // Stream.h: Header File for constants and structures related to Sound Output
-//
-
-#include <mmsystem.h>
+#pragma once
 
 typedef struct waveform_16bit_stereo
 {

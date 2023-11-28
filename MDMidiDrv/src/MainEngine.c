@@ -6,21 +6,19 @@
 
 // TODO: Take "rest" notes (vol 1-16) into account
 
-#include <stdio.h>
 #include <memory.h>
 #include <math.h>
-//#include "stdtype.h"
-#include "chips/mamedef.h"
-#include "stdbool.h"
-#include "Structs.h"
+#include "../../MDMidiPlay/src/chips/mamedef.h"
+#include "../../MDMidiPlay/src/stdbool.h"
+#include "../../MDMidiPlay/src/Structs.h"
 void PlayDACSample(UINT8 ChipID, UINT8 Sound);	// from Sound.c
 void OverrideDACRate(UINT8 ChipID, UINT8 Rate);	// from Sound.c
 void SetDACVol(UINT8 ChipID, UINT8 Volume);		// from Sound.c
 void Sound_WakeUp(void);						// from Sound.c
 void InitMappingData(void);						// from Loader.c
 
-#include "chips/2612intf.h"
-#include "chips/sn764intf.h"
+#include "../../MDMidiPlay/src/chips/2612intf.h"
+#include "../../MDMidiPlay/src/chips/sn764intf.h"
 
 
 typedef struct fm_psg_channel

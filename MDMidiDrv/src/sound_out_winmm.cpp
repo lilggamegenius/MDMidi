@@ -8,7 +8,7 @@
 #include <windows.h>
 #include <mmreg.h>
 #include <malloc.h>
-#include <assert.h>
+#include <cassert>
 
 
 #pragma comment (lib, "winmm.lib")

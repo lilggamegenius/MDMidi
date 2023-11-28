@@ -1,22 +1,17 @@
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+#pragma once
 
-void InitMappingData(void);
+#include "MDMidDrv.h"
 
-UINT8 LoadGYBFile(const TCHAR* FileName);
-void FreeGYBFile(void);
+CLINKAGE MDMidiDrv_EXPORT void InitMappingData(void);
 
-UINT8 LoadMappingFile(const TCHAR* FileName);
+CLINKAGE MDMidiDrv_EXPORT UINT8 LoadGYBFile(const TCHAR* FileName);
+CLINKAGE MDMidiDrv_EXPORT void FreeGYBFile(void);
+
+CLINKAGE MDMidiDrv_EXPORT UINT8 LoadMappingFile(const TCHAR* FileName);
 // Mapping Files don't use malloc
 
-UINT8 LoadPSGEnvFile(const TCHAR* FileName);
-void FreePSGEnvelopes(void);
+CLINKAGE MDMidiDrv_EXPORT UINT8 LoadPSGEnvFile(const TCHAR* FileName);
+CLINKAGE MDMidiDrv_EXPORT void FreePSGEnvelopes(void);
 
-UINT8 LoadDACData(const TCHAR* FileName);
-void FreeDACData(void);
-
-#ifdef __cplusplus
-}
-#endif
+CLINKAGE MDMidiDrv_EXPORT UINT8 LoadDACData(const TCHAR* FileName);
+CLINKAGE MDMidiDrv_EXPORT void FreeDACData(void);

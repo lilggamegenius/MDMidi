@@ -1,4 +1,6 @@
 // typedefs to use MAME's (U)INTxx types (copied from MAME\src\ods\odscomm.h)
+#pragma once
+
 /* 8-bit values */
 typedef unsigned char						UINT8;
 typedef signed char 						INT8;

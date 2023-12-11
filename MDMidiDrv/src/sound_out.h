@@ -1,23 +1,25 @@
 #pragma once
 
-class sound_out
-{
+class sound_out {
 public:
 	virtual ~sound_out() = default;
 
-	virtual const char* open( void * hwnd, unsigned sample_rate, unsigned short nch, bool floating_point, unsigned max_samples_per_frame, unsigned num_frames ) = 0;
+	virtual const char *open(
+		void *hwnd,
+		unsigned sample_rate,
+		unsigned short nch,
+		bool floating_point,
+		unsigned max_samples_per_frame,
+		unsigned num_frames
+	) = 0;
 
-	virtual const char* write_frame( void * buffer, unsigned num_samples, bool wait = true ) = 0;
-
+	virtual const char *write_frame(void *buffer, unsigned num_samples, bool wait = true) = 0;
 	virtual bool can_write(unsigned num_samples) = 0;
-
-	virtual const char* set_ratio( double ratio ) = 0;
-
-	virtual const char* pause( bool pausing ) = 0;
-
+	virtual const char *set_ratio(double ratio) = 0;
+	virtual const char *pause(bool pausing) = 0;
 	virtual double buffered() = 0;
 };
 
-sound_out * create_sound_out_ds();
-sound_out * create_sound_out_xaudio2();
-sound_out* create_sound_out_winmm();
+sound_out *create_sound_out_ds();
+sound_out *create_sound_out_xaudio2();
+sound_out *create_sound_out_winmm();

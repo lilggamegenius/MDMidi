@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.5)
 project(MDMidi)
 
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 include(GenerateExportHeader)
 
 set(MDMidiDrv_src
@@ -25,19 +29,15 @@ set(MDMidiDrv_src
 )
 set(MDMidiPlay_src
 		MDMidiPlay/src/Player.c
-		MDMidiDrv/src/Sound.c
 		MDMidiPlay/src/Stream.c
-		MDMidiPlay/src/chips/2612intf.c
-		MDMidiPlay/src/chips/sn764intf.c
-		MDMidiPlay/src/chips/fm2612.c
-		MDMidiPlay/src/chips/sn76496.c
 		MDMidiPlay/src/Midi1to0.c
 )
 
 #set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS 1)
 
 add_library(MDMidiDrv SHARED ${MDMidiDrv_src})
-target_include_directories(MDMidiDrv PRIVATE MDMidiDrv/lib)
+target_link_libraries(MDMidiDrv winmm XAUDIO2_8 dsound)
+target_include_directories(MDMidiDrv PRIVATE MDMidiDrv/lib MDMidiDrv/src)
 target_include_directories(MDMidiDrv PUBLIC MDMidiDrv/include)
 GENERATE_EXPORT_HEADER(
 		MDMidiDrv
@@ -51,4 +51,4 @@ target_include_directories(MDMidiDrv PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 add_executable(MDMidiPlay ${MDMidiPlay_src})
 target_include_directories(MDMidiPlay PRIVATE MDMidiDrv/lib)
 target_include_directories(MDMidiPlay PUBLIC MDMidiDrv/include)
-target_link_libraries(MDMidiPlay MDMidiDrv winmm)
+target_link_libraries(MDMidiPlay MDMidiDrv)

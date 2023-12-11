@@ -1,7 +1,4 @@
-/*
-  File: fm.h -- header file for software emulation for FM sound generator
-
-*/
+/// File: fm.h -- header file for software emulation for FM sound generator
 
 #pragma once
 
@@ -41,7 +38,7 @@ struct _ssg_callbacks
 #endif
 
 /* in 2612intf.c */
-void ym2612_update_request(void *param);
+void ym2612_update_request(void* param);
 #define ym2612_update_req(chip) ym2612_update_request(chip);
 
 /* compiler dependence */
@@ -57,8 +54,6 @@ typedef signed int		INT32;   /* signed 32bit   */
 #endif /* OSD_CPU_H */
 #endif
 
-
-
 typedef stream_sample_t FMSAMPLE;
 /*
 #if (FM_SAMPLE_BITS==16)
@@ -69,8 +64,8 @@ typedef unsigned char  FMSAMPLE;
 #endif
 */
 
-typedef void (*FM_TIMERHANDLER)(void *param,int c,int cnt,int clock);
-typedef void (*FM_IRQHANDLER)(void *param,int irq);
+typedef void (*FM_TIMERHANDLER)(void* param, int c, int cnt, int clock);
+typedef void (*FM_IRQHANDLER)(void* param, int irq);
 /* FM_TIMERHANDLER : Stop or Start timer         */
 /* int n          = chip number                  */
 /* int c          = Channel 0=TimerA,1=TimerB    */
@@ -83,15 +78,19 @@ typedef void (*FM_IRQHANDLER)(void *param,int irq);
 
 //void * ym2612_init(void *param, const device_config *device, int baseclock, int rate,
 //               FM_TIMERHANDLER TimerHandler,FM_IRQHANDLER IRQHandler);
-void * ym2612_init(void *param, int baseclock, int rate,
-               FM_TIMERHANDLER TimerHandler,FM_IRQHANDLER IRQHandler);
-void ym2612_shutdown(void *chip);
-void ym2612_reset_chip(void *chip);
-void ym2612_update_one(void *chip, FMSAMPLE **buffer, int length);
+void* ym2612_init(void* param,
+				  int baseclock,
+				  int rate,
+				  FM_TIMERHANDLER TimerHandler,
+				  FM_IRQHANDLER IRQHandler);
 
-int ym2612_write(void *chip, int a,unsigned char v);
+void ym2612_shutdown(void* chip);
+void ym2612_reset_chip(void* chip);
+void ym2612_update_one(void* chip, FMSAMPLE** buffer, int length);
+
+int ym2612_write(void* chip, int a, unsigned char v);
 //unsigned char ym2612_read(void *chip,int a);
 //int ym2612_timer_over(void *chip, int c );
 //void ym2612_postload(void *chip);
 
-void ym2612_set_mutemask(void *chip, UINT32 MuteMask);
+void ym2612_set_mutemask(void* chip, UINT32 MuteMask);

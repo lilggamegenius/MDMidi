@@ -1,8 +1,7 @@
 // Stream.h: Header File for constants and structures related to Sound Output
 #pragma once
 
-typedef struct waveform_16bit_stereo
-{
+typedef struct waveform_16bit_stereo {
 	INT16 Left;
 	INT16 Right;
 } WAVE_16BS;
@@ -14,9 +13,9 @@ typedef struct waveform_16bit_stereo
 //				1 Audio-Buffer = 10 msec, Min: 5
 //				Win95- / WinVista-safe: 500 msec
 
-UINT8 SaveFile(UINT32 FileLen, void* TempData);
+UINT8 SaveFile(UINT32 FileLen, void *TempData);
 UINT8 SoundLogging(UINT8 Mode);
 UINT8 StartStream(UINT8 DeviceID);
 UINT8 StopStream(bool SkipWOClose);
 void PauseStream(bool PauseOn);
-void FillBuffer(WAVE_16BS* Buffer, UINT32 BufferSize);
+void FillBuffer(WAVE_16BS *Buffer, UINT32 BufferSize);

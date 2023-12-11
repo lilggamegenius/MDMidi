@@ -1,19 +1,15 @@
 #pragma once
 
-#include "MDMidiDrv_Export.h"
-
 #ifdef __cplusplus
 #define CLINKAGE extern "C"
-CLINKAGE
-{
 #else
 #define CLINKAGE
 #endif
 
+//#include "MDMidiDrv_Export.h"
+#define MDMidiDrv_EXPORT
+#define MDMidiDrv_CEXPORT MDMidiDrv_EXPORT CLINKAGE
 
-MDMidiDrv_EXPORT void InitEngine(void);	// from MainEngine.c
-MDMidiDrv_EXPORT void StartEngine(void);
+MDMidiDrv_CEXPORT void InitEngine(void); // from MainEngine.c
+MDMidiDrv_CEXPORT void StartEngine(void);
 
-#ifdef __cplusplus
-}
-#endif

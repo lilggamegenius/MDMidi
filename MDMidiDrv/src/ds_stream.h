@@ -7,7 +7,7 @@ public:
 
 	virtual bool write(const void* data, unsigned bytes) = 0;
 	virtual bool is_playing() = 0;
-	virtual double get_latency() =0;
+	virtual double get_latency() = 0;
 	virtual unsigned get_latency_bytes() = 0;
 	virtual unsigned can_write_bytes() = 0;
 	virtual bool force_play() = 0;
@@ -35,12 +35,11 @@ protected:
 	virtual ~ds_api() = default;
 
 public:
-	virtual ds_stream* ds_stream_create(const ds_stream_config* cfg) =0;
-
-	virtual void set_device(const GUID* id) =0;
+	virtual ds_stream* ds_stream_create(const ds_stream_config* cfg) = 0;
+	virtual void set_device(const GUID* id) = 0;
 
 	//destructor
-	virtual void release() =0;
+	virtual void release() = 0;
 };
 
 ds_api* ds_api_create(HWND appwindow);
